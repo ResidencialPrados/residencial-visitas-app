@@ -13,18 +13,16 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-  <!-- QR Code Generator -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <!-- QRious para generar QR -->
+  <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
 </head>
 <body>
-  <h1>Dashboard Residente</h1>
+  <h1>Panel de Residente</h1>
   <button id="logoutBtn">Cerrar sesión</button>
 
-  <!-- Datos del residente -->
-  <h2>Mi información</h2>
-  <p id="residenteInfo">Cargando...</p>
+  <h2>Información del Residente</h2>
+  <p id="residenteInfo">Cargando datos...</p>
 
-  <!-- Formulario de visitas -->
   <h2>Anunciar Visita</h2>
   <form id="visitForm">
     <input type="text" id="visitorName" placeholder="Nombre del visitante" required><br>
@@ -33,16 +31,14 @@
     <p id="visitMsg"></p>
   </form>
 
-  <!-- QR generado -->
   <canvas id="qrCanvas"></canvas>
 
-  <!-- Lista de visitas -->
-  <h2>Mis Visitas Anunciadas</h2>
+  <h2>Visitas Registradas</h2>
   <table>
     <thead>
       <tr>
         <th>Visitante</th>
-        <th>Fecha y hora</th>
+        <th>Fecha/Hora</th>
         <th>Estado</th>
       </tr>
     </thead>
