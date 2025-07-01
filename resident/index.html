@@ -2,32 +2,55 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Visitas ‒ Residente</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Residente</title>
 
-  <!-- PWA manifest -->
   <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/styles-resident.css">
 
-  <!-- Firebase SDK -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-  <!-- Biblioteca para generar QR -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-  <!-- Estilos -->
-  <link rel="stylesheet" href="css/styles-resident.css" />
+  <!-- QR Code Generator -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 </head>
 <body>
-  <div id="app"></div>
+  <h1>Dashboard Residente</h1>
+  <button id="logoutBtn">Cerrar sesión</button>
+
+  <!-- Datos del residente -->
+  <h2>Mi información</h2>
+  <p id="residenteInfo">Cargando...</p>
+
+  <!-- Formulario de visitas -->
+  <h2>Anunciar Visita</h2>
+  <form id="visitForm">
+    <input type="text" id="visitorName" placeholder="Nombre del visitante" required><br>
+    <input type="datetime-local" id="visitTime" required><br>
+    <button type="submit">Generar QR y Anunciar Visita</button>
+    <p id="visitMsg"></p>
+  </form>
+
+  <!-- QR generado -->
+  <canvas id="qrCanvas"></canvas>
+
+  <!-- Lista de visitas -->
+  <h2>Mis Visitas Anunciadas</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Visitante</th>
+        <th>Fecha y hora</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody id="visitasList">
+      <tr><td colspan="3" style="text-align:center;">Cargando...</td></tr>
+    </tbody>
+  </table>
 
   <script src="js/main-resident.js"></script>
-  <script>
-    // Registrar el Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js');
-    }
-  </script>
 </body>
 </html>
