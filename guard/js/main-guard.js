@@ -1,159 +1,119 @@
-// --- Inicializar Firebase ---
+// Inicializar Firebase
 firebase.initializeApp({
   apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
   authDomain: "residencial-qr.firebaseapp.com",
   projectId: "residencial-qr",
-  storageBucket: "residencial-qr.firebasestorage.app",
+  storageBucket: "residencial-qr.appspot.com",
   messagingSenderId: "21258599408",
   appId: "1:21258599408:web:81a0a5b062aac6e6bdfb35",
   measurementId: "G-TFYENFPEKX"
 });
+
 const auth = firebase.auth();
-const db   = firebase.firestore();
+const db = firebase.firestore();
 
-// Referencia al contenedor principal
-const appDiv = document.getElementById('app');
-
-// Escucha cambios de autenticación
-window.addEventListener('load', () => {
+document.addEventListener('DOMContentLoaded', () => {
+  // Verificar sesión del guardia
   auth.onAuthStateChanged(user => {
-    if (user) loadGuardUI(user);
-    else showGuardLogin();
+    if (!user) {
+      window.location.href = "../index.html"; // Redirigir a login si no está logueado
+    } else {
+      iniciarDashboardGuardia();
+    }
   });
 });
 
-// Muestra formulario de login para guardias
-function showGuardLogin() {
-  appDiv.innerHTML = `
-    <h2>Login Guardia</h2>
-    <form id="loginG">
-      <input id="email" type="email" required placeholder="Email"/><br>
-      <input id="pass"  type="password" required placeholder="Contraseña"/><br>
-      <button>Entrar</button>
-    </form>
-    <p id="errorG" style="color:red;"></p>
-  `;
-  document.getElementById('loginG').addEventListener('submit', e => {
-    e.preventDefault();
-    const email = document.getElementById('email').value;
-    const pass  = document.getElementById('pass').value;
-    document.getElementById('errorG').textContent = '';
-    auth.signInWithEmailAndPassword(email, pass)
-      .catch(err => document.getElementById('errorG').textContent = err.message);
-  });
-}
+function iniciarDashboardGuardia() {
+  const btnActivarQR = document.getElementById('btn-activar-qr');
+  const qrReaderDiv = document.getElementById('qr-reader');
+  let qrScanner;
 
-// Panel principal del guardia
-function loadGuardUI(user) {
-  appDiv.innerHTML = `
-    <h2>Bienvenido, Guardia</h2>
-    <button id="logoutG">Cerrar Sesión</button>
-    <h3>Escanear QR de Visita</h3>
-    <button id="toggleQR">Activar Lector QR</button>
-    <video id="video" width="300" height="200" style="display:none;"></video>
-    <div id="scan-result"></div>
-    <h3>Visitas Pendientes</h3>
-    <ul id="pending-list"></ul>
-  `;
-  document.getElementById('logoutG').onclick = () => auth.signOut();
-
-  setupQRScannerToggle();
-  subscribePendingVisits();
-}
-
-let codeReader; // global para controlar el lector
-let scanning = false;
-
-// Configura el botón para activar/desactivar QR
-function setupQRScannerToggle() {
-  codeReader = new ZXing.BrowserMultiFormatReader();
-  const videoElem = document.getElementById('video');
-  const toggleBtn = document.getElementById('toggleQR');
-
-  toggleBtn.addEventListener('click', () => {
-    if (!scanning) {
-      toggleBtn.textContent = "Desactivar Lector QR";
-      videoElem.style.display = "block";
-      startQRScanner(codeReader, videoElem);
-      scanning = true;
+  btnActivarQR.addEventListener('click', () => {
+    if (!qrScanner) {
+      qrReaderDiv.style.display = "block";
+      qrScanner = new Html5Qrcode("qr-reader");
+      qrScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        async (decodedText) => {
+          qrScanner.stop();
+          qrReaderDiv.innerHTML = ""; // Limpiar lector
+          await procesarVisita(decodedText);
+        },
+        (errorMessage) => {
+          console.warn(`QR Scan error: ${errorMessage}`);
+        }
+      ).catch(err => {
+        console.error("Error al iniciar lector QR:", err);
+      });
     } else {
-      toggleBtn.textContent = "Activar Lector QR";
-      videoElem.style.display = "none";
-      codeReader.reset();
-      scanning = false;
+      qrScanner.stop();
+      qrReaderDiv.innerHTML = "";
+      qrScanner = null;
+      qrReaderDiv.style.display = "none";
     }
   });
+
+  cargarVisitasPendientes();
 }
 
-// Inicia el escáner QR solo cuando es activado
-function startQRScanner(codeReader, videoElem) {
-  codeReader.decodeFromVideoDevice(null, videoElem, (result, err) => {
-    if (result) {
-      codeReader.reset();
-      scanning = false;
-      document.getElementById('toggleQR').textContent = "Activar Lector QR";
-      videoElem.style.display = "none";
-      handleScanResult(result.getText());
-    }
-  });
-}
-
-// Maneja el resultado del escaneo
-async function handleScanResult(text) {
-  const visitRef = db.collection('visits').doc(text);
-  const visitSnap = await visitRef.get();
-  if (!visitSnap.exists) {
-    alert('Visita no encontrada');
-    return;
-  }
-  const visit = visitSnap.data();
-  if (visit.status === 'ingresado') {
-    alert('Esta visita ya ingresó');
-    return;
-  }
-
-  // Mostrar datos y formulario de vehículo
-  document.getElementById('scan-result').innerHTML = `
-    <p><strong>Visitante:</strong> ${visit.visitorName}</p>
-    <p><strong>Casa/Bloque:</strong> ${visit.house} / ${visit.block}</p>
-    <p><strong>Anunciante:</strong> ${visit.residentName}</p>
-    <p><strong>Teléfono:</strong> ${visit.residentPhone}</p>
-    <form id="vehicleForm">
-      <label>Marca:<br><input id="marca" /></label><br>
-      <label>Color:<br><input id="color" /></label><br>
-      <label>Placa:<br><input id="placa" /></label><br>
-      <button>Registrar Ingreso</button>
-    </form>
-  `;
-  document.getElementById('vehicleForm').addEventListener('submit', async e => {
-    e.preventDefault();
-    await visitRef.update({
-      status: 'ingresado',
-      checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
-      vehicle: {
-        marca: document.getElementById('marca').value || null,
-        color: document.getElementById('color').value || null,
-        placa: document.getElementById('placa').value || null
-      },
-      guardId: auth.currentUser.uid
-    });
-    alert('Ingreso registrado con éxito');
-    document.getElementById('scan-result').textContent = '';
-  });
-}
-
-// Suscripción en tiempo real a visitas pendientes
-function subscribePendingVisits() {
+function cargarVisitasPendientes() {
+  const tbody = document.getElementById('visitas-body');
   db.collection('visits')
     .where('status', '==', 'pendiente')
+    .orderBy('scheduledTime', 'asc')
     .onSnapshot(snapshot => {
-      const list = document.getElementById('pending-list');
-      list.innerHTML = '';
+      tbody.innerHTML = '';
       snapshot.forEach(doc => {
-        const v = doc.data();
-        const li = document.createElement('li');
-        li.textContent = `${v.visitorName} → ${v.house}/${v.block} (${v.scheduledTime || 'sin hora'})`;
-        list.appendChild(li);
+        const visita = doc.data();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${visita.visitorName || 'Sin nombre'}</td>
+          <td>${visita.residentName || 'Sin residente'}</td>
+          <td>${visita.scheduledTime ? visita.scheduledTime.toDate().toLocaleString() : 'Sin hora'}</td>
+          <td><button onclick="procesarVisita('${doc.id}')">Registrar Ingreso</button></td>
+        `;
+        tbody.appendChild(tr);
       });
     });
+}
+
+async function procesarVisita(visitaId) {
+  try {
+    const visitaRef = db.collection('visits').doc(visitaId);
+    const visitaSnap = await visitaRef.get();
+
+    if (!visitaSnap.exists) {
+      alert("Visita no encontrada.");
+      return;
+    }
+
+    const visita = visitaSnap.data();
+
+    if (visita.status === 'ingresado') {
+      alert("Esta visita ya fue ingresada previamente.");
+      return;
+    }
+
+    const marca = prompt("Ingrese la marca del vehículo (opcional):", "");
+    const color = prompt("Ingrese el color del vehículo (opcional):", "");
+    const placa = prompt("Ingrese la placa del vehículo (opcional):", "");
+
+    await visitaRef.update({
+      status: 'ingresado',
+      checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
+      guardId: auth.currentUser.uid,
+      vehicle: {
+        marca: marca || null,
+        color: color || null,
+        placa: placa || null
+      }
+    });
+
+    alert("Ingreso registrado correctamente.");
+
+  } catch (error) {
+    console.error("Error al procesar la visita:", error);
+    alert("Ocurrió un error al registrar la visita.");
+  }
 }
