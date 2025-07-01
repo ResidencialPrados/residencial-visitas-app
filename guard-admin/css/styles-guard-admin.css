@@ -1,1 +1,54 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 15px;
+  background: #f9f9f9;
+}
+
+h1, h2 {
+  color: #004d40;
+}
+
+button {
+  background-color: #004d40;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  margin: 5px 0;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button:hover {
+  background-color: #00695c;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: #fff;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+th {
+  background-color: #004d40;
+  color: white;
+}
+
+form input, form select {
+  padding: 8px;
+  margin: 5px 0;
+  width: 95%;
+  max-width: 300px;
+}
+
+#crearUsuarioMsg {
+  color: green;
+  font-weight: bold;
+}
 
