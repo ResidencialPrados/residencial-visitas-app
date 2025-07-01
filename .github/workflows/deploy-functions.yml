@@ -28,6 +28,7 @@ jobs:
         with:
           args: deploy --only functions
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          FIREBASE_PROJECT_ID:     ${{ secrets.FIREBASE_PROJECT_ID }}
-          PROJECT_ID:              ${{ secrets.FIREBASE_PROJECT_ID }}
+          # Clave de servicio en la variable que la Action espera:
+          GCP_SA_KEY:            ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_PROJECT_ID:   ${{ secrets.FIREBASE_PROJECT_ID }}
+          PROJECT_ID:            ${{ secrets.FIREBASE_PROJECT_ID }}
