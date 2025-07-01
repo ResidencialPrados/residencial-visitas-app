@@ -45,11 +45,16 @@
   <form id="crearUsuarioForm">
     <input type="email" id="nuevoEmail" placeholder="Email del nuevo usuario" required><br>
     <input type="password" id="nuevoPassword" placeholder="Contraseña" required><br>
-    <select id="rolUsuario">
+
+    <select id="rolUsuario" required>
       <option value="guard">Guardia Común</option>
       <option value="guard_admin">Guardia Administrador</option>
       <option value="resident">Residente</option>
     </select><br>
+
+    <!-- Campos adicionales dinámicos -->
+    <div id="camposAdicionales"></div>
+
     <button type="submit">Crear Usuario</button>
     <p id="crearUsuarioMsg"></p>
   </form>
@@ -73,4 +78,3 @@
   <script src="js/main-guard-admin.js"></script>
 </body>
 </html>
-
