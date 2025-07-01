@@ -24,7 +24,7 @@ jobs:
           npm install
 
       - name: Deploy to Firebase Functions
-        uses: FirebaseExtended/action-firebase-cli@v1
+        uses: w9jds/firebase-action@v2.2.0
         with:
           args: deploy --only functions
         env:
