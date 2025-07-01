@@ -1,16 +1,47 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Control de Visitas</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Control de Visitas - Login</title>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+    input {
+      padding: 8px;
+      margin: 5px;
+      width: 200px;
+    }
+    button {
+      padding: 8px 16px;
+      margin: 10px;
+    }
+    #error {
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Control de Visitas</h1>
-  <p>Elige tu perfil:</p>
-  <ul>
-    <li><a href="resident/">Residente</a></li>
-    <li><a href="guard/">Guardia</a></li>
-  </ul>
+  <h1>Ingreso a Residencial</h1>
+
+  <form id="loginForm">
+    <input type="email" id="email" placeholder="Correo" required /><br>
+    <input type="password" id="password" placeholder="Contraseña" required /><br>
+    <button type="submit">Ingresar</button>
+  </form>
+
+  <p id="error"></p>
+
+  <script src="js/main.js"></script>
 </body>
 </html>
