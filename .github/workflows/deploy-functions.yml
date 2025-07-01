@@ -2,10 +2,8 @@ name: Deploy Firebase Functions
 
 on:
   push:
-    paths:
-      - 'functions/**'
-      - 'firebase.json'
-      - '.firebaserc'
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
@@ -30,7 +28,6 @@ jobs:
         with:
           args: deploy --only functions
         env:
-          # Claves que ya tienes en Secrets
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_PROJECT_ID:     ${{ secrets.FIREBASE_PROJECT_ID }}
           PROJECT_ID:              ${{ secrets.FIREBASE_PROJECT_ID }}
