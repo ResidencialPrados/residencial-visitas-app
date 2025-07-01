@@ -1,4 +1,4 @@
-// Inicializar Firebase
+// --- Inicializar Firebase ---
 firebase.initializeApp({
   apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
   authDomain: "residencial-qr.firebaseapp.com",
@@ -12,11 +12,12 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Al cargar la página, verifica sesión
 document.addEventListener('DOMContentLoaded', () => {
-  // Verificar sesión del guardia
   auth.onAuthStateChanged(user => {
     if (!user) {
-      window.location.href = "../index.html"; // Redirigir a login si no está logueado
+      alert("Sesión no iniciada. Redirigiendo a login.");
+      window.location.href = "/residencial-visitas-app/index.html";
     } else {
       iniciarDashboardGuardia();
     }
@@ -26,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function iniciarDashboardGuardia() {
   const btnActivarQR = document.getElementById('btn-activar-qr');
   const qrReaderDiv = document.getElementById('qr-reader');
-  let qrScanner;
+  let qrScanner = null;
 
   btnActivarQR.addEventListener('click', () => {
     if (!qrScanner) {
@@ -36,8 +37,10 @@ function iniciarDashboardGuardia() {
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
         async (decodedText) => {
-          qrScanner.stop();
-          qrReaderDiv.innerHTML = ""; // Limpiar lector
+          await qrScanner.stop();
+          qrReaderDiv.innerHTML = "";
+          qrReaderDiv.style.display = "none";
+          qrScanner = null;
           await procesarVisita(decodedText);
         },
         (errorMessage) => {
@@ -45,12 +48,14 @@ function iniciarDashboardGuardia() {
         }
       ).catch(err => {
         console.error("Error al iniciar lector QR:", err);
+        alert("Error al iniciar el lector QR: " + err.message);
       });
     } else {
-      qrScanner.stop();
-      qrReaderDiv.innerHTML = "";
-      qrScanner = null;
-      qrReaderDiv.style.display = "none";
+      qrScanner.stop().then(() => {
+        qrReaderDiv.innerHTML = "";
+        qrReaderDiv.style.display = "none";
+        qrScanner = null;
+      });
     }
   });
 
@@ -64,17 +69,31 @@ function cargarVisitasPendientes() {
     .orderBy('scheduledTime', 'asc')
     .onSnapshot(snapshot => {
       tbody.innerHTML = '';
-      snapshot.forEach(doc => {
-        const visita = doc.data();
+      if (snapshot.empty) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${visita.visitorName || 'Sin nombre'}</td>
-          <td>${visita.residentName || 'Sin residente'}</td>
-          <td>${visita.scheduledTime ? visita.scheduledTime.toDate().toLocaleString() : 'Sin hora'}</td>
-          <td><button onclick="procesarVisita('${doc.id}')">Registrar Ingreso</button></td>
-        `;
+        tr.innerHTML = `<td colspan="4" style="text-align:center; color:gray;">No hay visitas pendientes</td>`;
         tbody.appendChild(tr);
-      });
+      } else {
+        snapshot.forEach(doc => {
+          const visita = doc.data();
+          const tr = document.createElement('tr');
+          const hora = visita.scheduledTime && visita.scheduledTime.toDate
+            ? visita.scheduledTime.toDate().toLocaleString()
+            : 'Sin hora';
+          tr.innerHTML = `
+            <td>${visita.visitorName || 'Sin nombre'}</td>
+            <td>${visita.residentName || 'Sin residente'}</td>
+            <td>${hora}</td>
+            <td><button onclick="procesarVisita('${doc.id}')">Registrar Ingreso</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }, error => {
+      console.error("Error de permisos o Firestore:", error);
+      tbody.innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">
+        Error al cargar visitas. Verifica permisos en Firestore.
+      </td></tr>`;
     });
 }
 
@@ -95,9 +114,9 @@ async function procesarVisita(visitaId) {
       return;
     }
 
-    const marca = prompt("Ingrese la marca del vehículo (opcional):", "");
-    const color = prompt("Ingrese el color del vehículo (opcional):", "");
-    const placa = prompt("Ingrese la placa del vehículo (opcional):", "");
+    const marca = prompt("Marca del vehículo (opcional):", "");
+    const color = prompt("Color del vehículo (opcional):", "");
+    const placa = prompt("Placa del vehículo (opcional):", "");
 
     await visitaRef.update({
       status: 'ingresado',
@@ -114,6 +133,6 @@ async function procesarVisita(visitaId) {
 
   } catch (error) {
     console.error("Error al procesar la visita:", error);
-    alert("Ocurrió un error al registrar la visita.");
+    alert("Error al registrar la visita. Revisa la consola.");
   }
 }
