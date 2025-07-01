@@ -1,1 +1,23 @@
+body {
+  font-family: sans-serif;
+  margin: 1rem;
+}
+button {
+  padding: 0.5rem 1rem;
+  margin-top: 0.5rem;
+}
+#video {
+  border: 2px solid #004d40;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+#scan-result {
+  background: #f1f1f1;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+}
+#pending-list li {
+  margin: 0.25rem 0;
+}
 
