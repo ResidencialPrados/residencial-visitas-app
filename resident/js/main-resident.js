@@ -10,98 +10,95 @@ firebase.initializeApp({
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-const qrCanvas = document.getElementById('qrCanvas');
-const qr = new QRious({
-  element: qrCanvas,
-  size: 250,
-  value: ''
-});
 
 document.addEventListener('DOMContentLoaded', () => {
-  auth.onAuthStateChanged(async (user) => {
+  auth.onAuthStateChanged(async user => {
     if (!user) {
       window.location.href = "../index.html";
-      return;
+    } else {
+      const userDoc = await db.collection('usuarios').doc(user.uid).get();
+      if (!userDoc.exists || userDoc.data().rol !== 'resident') {
+        alert('Acceso denegado. Solo residentes pueden acceder aquí.');
+        await auth.signOut();
+        window.location.href = "../index.html";
+        return;
+      }
+      iniciarDashboardResidente(user, userDoc.data());
     }
-    const uid = user.uid;
-
-    // Cargar datos del residente
-    const doc = await db.collection('usuarios').doc(uid).get();
-    if (!doc.exists) {
-      document.getElementById('residenteInfo').textContent = "Datos no encontrados. Contacte a administración.";
-      return;
-    }
-
-    const data = doc.data();
-    document.getElementById('residenteInfo').textContent =
-      `Nombre: ${data.nombre || 'N/A'}, Tel: ${data.phone || 'N/A'}, Bloque: ${data.block || 'N/A'}, Casa: ${data.house || 'N/A'}`;
-
-    document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
-
-    cargarVisitas(uid, data);
-
-    manejarFormularioVisitas(uid, data);
   });
 });
 
-function manejarFormularioVisitas(uid, residenteData) {
-  const form = document.getElementById('visitForm');
-  const msg = document.getElementById('visitMsg');
+// Cerrar sesión
+document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+function iniciarDashboardResidente(user, residenteData) {
+  const form = document.getElementById('crearVisitaForm');
+  const msg = document.getElementById('mensajeVisita');
+  const qrCanvas = document.getElementById('qrCanvas');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const visitorName = document.getElementById('visitorName').value.trim();
-    const visitTime = document.getElementById('visitTime').value;
+    msg.textContent = "Generando QR y registrando visita...";
 
-    if (!visitorName || !visitTime) {
+    const visitorName = document.getElementById('nombreVisitante').value.trim();
+    const visitorPhone = document.getElementById('telefonoVisitante').value.trim();
+    const scheduledTime = document.getElementById('fechaHoraVisita').value;
+
+    if (!visitorName || !visitorPhone || !scheduledTime) {
       msg.textContent = "Todos los campos son obligatorios.";
       return;
     }
 
-    const textoQR = `${residenteData.nombre || 'Residente'} anuncia a ${visitorName}, Casa ${residenteData.house || 'N/A'} Bloque ${residenteData.block || 'N/A'}, Tel ${residenteData.phone || 'N/A'}`;
-
-    qr.value = textoQR;
-
     try {
-      await db.collection('visits').add({
+      // Crear documento de visita
+      const visitRef = await db.collection('visits').add({
         visitorName,
-        residentName: residenteData.nombre || 'Residente',
-        residentId: uid,
-        scheduledTime: firebase.firestore.Timestamp.fromDate(new Date(visitTime)),
+        visitorPhone,
+        residentName: residenteData.nombre || 'Sin nombre',
+        residentPhone: residenteData.phone || 'Sin teléfono',
+        house: residenteData.house || 'Sin casa',
+        block: residenteData.block || 'Sin bloque',
+        residentId: user.uid,
+        scheduledTime: firebase.firestore.Timestamp.fromDate(new Date(scheduledTime)),
         status: 'pendiente',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      msg.textContent = "Visita anunciada con éxito.";
+      // Generar QR
+      const qr = new QRious({
+        element: qrCanvas,
+        size: 250,
+        value: visitRef.id
+      });
+      qrCanvas.style.display = 'block';
+      msg.textContent = "Visita registrada y QR generado correctamente.";
+
       form.reset();
+      cargarVisitas(user.uid);
+
     } catch (error) {
       console.error(error);
-      msg.textContent = "Error al registrar la visita: " + error.message;
+      msg.textContent = "Error al registrar visita: " + error.message;
     }
   });
+
+  cargarVisitas(user.uid);
 }
 
-function cargarVisitas(uid, residenteData) {
-  const tbody = document.getElementById('visitasList');
-
+function cargarVisitas(residentUid) {
+  const tbody = document.getElementById('visitasBody');
   db.collection('visits')
-    .where('residentId', '==', uid)
+    .where('residentId', '==', residentUid)
     .orderBy('scheduledTime', 'desc')
     .onSnapshot(snapshot => {
       tbody.innerHTML = '';
       if (snapshot.empty) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No hay visitas registradas</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay visitas registradas.</td></tr>';
       } else {
         snapshot.forEach(doc => {
           const v = doc.data();
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${v.visitorName || 'Sin nombre'}</td>
+            <td>${v.visitorName}</td>
+            <td>${v.visitorPhone}</td>
             <td>${v.scheduledTime ? v.scheduledTime.toDate().toLocaleString() : 'Sin hora'}</td>
-            <td>${v.status || 'Sin estado'}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-    });
-}
