@@ -49,25 +49,50 @@ function loadGuardUI(user) {
     <h2>Bienvenido, Guardia</h2>
     <button id="logoutG">Cerrar Sesión</button>
     <h3>Escanear QR de Visita</h3>
-    <video id="video" width="300" height="200"></video>
+    <button id="toggleQR">Activar Lector QR</button>
+    <video id="video" width="300" height="200" style="display:none;"></video>
     <div id="scan-result"></div>
     <h3>Visitas Pendientes</h3>
     <ul id="pending-list"></ul>
   `;
   document.getElementById('logoutG').onclick = () => auth.signOut();
 
-  initQRScanner();
+  setupQRScannerToggle();
   subscribePendingVisits();
 }
 
-// Inicializa el escáner de QR con ZXing
-function initQRScanner() {
-  const codeReader = new ZXing.BrowserMultiFormatReader();
-  const videoElem = document.getElementById('video');
+let codeReader; // global para controlar el lector
+let scanning = false;
 
+// Configura el botón para activar/desactivar QR
+function setupQRScannerToggle() {
+  codeReader = new ZXing.BrowserMultiFormatReader();
+  const videoElem = document.getElementById('video');
+  const toggleBtn = document.getElementById('toggleQR');
+
+  toggleBtn.addEventListener('click', () => {
+    if (!scanning) {
+      toggleBtn.textContent = "Desactivar Lector QR";
+      videoElem.style.display = "block";
+      startQRScanner(codeReader, videoElem);
+      scanning = true;
+    } else {
+      toggleBtn.textContent = "Activar Lector QR";
+      videoElem.style.display = "none";
+      codeReader.reset();
+      scanning = false;
+    }
+  });
+}
+
+// Inicia el escáner QR solo cuando es activado
+function startQRScanner(codeReader, videoElem) {
   codeReader.decodeFromVideoDevice(null, videoElem, (result, err) => {
     if (result) {
       codeReader.reset();
+      scanning = false;
+      document.getElementById('toggleQR').textContent = "Activar Lector QR";
+      videoElem.style.display = "none";
       handleScanResult(result.getText());
     }
   });
@@ -75,7 +100,6 @@ function initQRScanner() {
 
 // Maneja el resultado del escaneo
 async function handleScanResult(text) {
-  // text debería ser el ID de la visita
   const visitRef = db.collection('visits').doc(text);
   const visitSnap = await visitRef.get();
   if (!visitSnap.exists) {
@@ -118,7 +142,7 @@ async function handleScanResult(text) {
   });
 }
 
-// Muestra lista en tiempo real de visitas pendientes
+// Suscripción en tiempo real a visitas pendientes
 function subscribePendingVisits() {
   db.collection('visits')
     .where('status', '==', 'pendiente')
@@ -133,4 +157,3 @@ function subscribePendingVisits() {
       });
     });
 }
-
