@@ -24,10 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function cargarDashboardAdmin(user) {
   document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
-  // Escaneo QR
+  // Lector QR
   const btnQR = document.getElementById('activarQRBtn');
   const qrDiv = document.getElementById('qr-reader');
-  let qrScanner;
+  let qrScanner = null;
 
   btnQR.addEventListener('click', () => {
     if (!qrScanner) {
@@ -41,7 +41,7 @@ function cargarDashboardAdmin(user) {
           qrDiv.innerHTML = "";
           await procesarVisita(decodedText);
         },
-        (err) => console.warn("QR Error:", err)
+        err => console.warn("QR Error:", err)
       );
     } else {
       qrScanner.stop();
@@ -56,7 +56,7 @@ function cargarDashboardAdmin(user) {
   manejarCreacionUsuarios();
 }
 
-// Cargar visitas pendientes
+// Cargar visitas
 function cargarVisitasPendientes() {
   const tbody = document.getElementById('visitas-body');
   db.collection('visits')
@@ -112,7 +112,7 @@ async function procesarVisita(visitaId) {
   }
 }
 
-// Cargar residentes y pagos
+// Cargar residentes
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
   db.collection('usuarios').where('rol', '==', 'resident').onSnapshot(snapshot => {
@@ -149,12 +149,13 @@ async function registrarPago(id) {
 // Crear usuarios
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
+  const msg = document.getElementById('crearUsuarioMsg');
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('nuevoEmail').value.trim();
     const password = document.getElementById('nuevoPassword').value.trim();
     const rol = document.getElementById('rolUsuario').value;
-    const msg = document.getElementById('crearUsuarioMsg');
 
     msg.textContent = "Creando usuario...";
 
@@ -172,8 +173,11 @@ function manejarCreacionUsuarios() {
       form.reset();
     } catch (error) {
       console.error(error);
-      msg.textContent = "Error al crear usuario: " + error.message;
+      if (error.code === 'auth/email-already-in-use') {
+        msg.textContent = "El correo ya está registrado. Si desea asignar rol, háblelo con soporte.";
+      } else {
+        msg.textContent = "Error al crear usuario: " + error.message;
+      }
     }
   });
 }
-
