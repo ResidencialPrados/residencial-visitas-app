@@ -1,11 +1,12 @@
 // --- Inicializar Firebase ---
 firebase.initializeApp({
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  projectId: "TU_PROYECTO",
-  storageBucket: "TU_PROYECTO.appspot.com",
-  messagingSenderId: "TU_MENSAJES_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
+  authDomain: "residencial-qr.firebaseapp.com",
+  projectId: "residencial-qr",
+  storageBucket: "residencial-qr.firebasestorage.app",
+  messagingSenderId: "21258599408",
+  appId: "1:21258599408:web:81a0a5b062aac6e6bdfb35",
+  measurementId: "G-TFYENFPEKX"
 });
 const auth = firebase.auth();
 const db   = firebase.firestore();
