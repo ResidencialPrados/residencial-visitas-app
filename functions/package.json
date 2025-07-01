@@ -1,7 +1,13 @@
 {
   "engines": { "node": "18" },
+  "main": "index.js",
+  "private": true,
   "dependencies": {
     "firebase-admin": "^11.0.0",
     "firebase-functions": "^4.0.0"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "build": "echo 'no build step'"
   }
 }
