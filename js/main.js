@@ -33,11 +33,11 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
     const rol = userDoc.data().rol;
     if (rol === 'guard') {
-      window.location.href = "/guard/";
+      window.location.href = "./guard/";
     } else if (rol === 'guard_admin') {
-      window.location.href = "/guard-admin/";
+      window.location.href = "./guard-admin/";
     } else if (rol === 'resident') {
-      window.location.href = "/resident/";
+      window.location.href = "./resident/";
     } else {
       document.getElementById('error').textContent = 'Rol desconocido. Contactar administración.';
       await auth.signOut();
