@@ -11,94 +11,82 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = '../index.html'));
+
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(async user => {
     if (!user) {
       window.location.href = "../index.html";
-    } else {
-      const userDoc = await db.collection('usuarios').doc(user.uid).get();
-      if (!userDoc.exists || userDoc.data().rol !== 'resident') {
-        alert('Acceso denegado. Solo residentes pueden acceder aquí.');
-        await auth.signOut();
-        window.location.href = "../index.html";
-        return;
-      }
-      iniciarDashboardResidente(user, userDoc.data());
+      return;
     }
+    const uid = user.uid;
+    const userDoc = await db.collection('usuarios').doc(uid).get();
+    const data = userDoc.data();
+
+    if (data.estado_pago !== 'Pagado') {
+      document.getElementById('pagoPendiente').textContent = "⚠️ Su pago está vencido. Contacte administración.";
+    }
+
+    cargarVisitas(uid, data);
   });
 });
 
-// Cerrar sesión
-document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
-
-function iniciarDashboardResidente(user, residenteData) {
-  const form = document.getElementById('crearVisitaForm');
-  const msg = document.getElementById('mensajeVisita');
-  const qrCanvas = document.getElementById('qrCanvas');
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    msg.textContent = "Generando QR y registrando visita...";
-
-    const visitorName = document.getElementById('nombreVisitante').value.trim();
-    const visitorPhone = document.getElementById('telefonoVisitante').value.trim();
-    const scheduledTime = document.getElementById('fechaHoraVisita').value;
-
-    if (!visitorName || !visitorPhone || !scheduledTime) {
-      msg.textContent = "Todos los campos son obligatorios.";
-      return;
-    }
-
-    try {
-      // Crear documento de visita
-      const visitRef = await db.collection('visits').add({
-        visitorName,
-        visitorPhone,
-        residentName: residenteData.nombre || 'Sin nombre',
-        residentPhone: residenteData.phone || 'Sin teléfono',
-        house: residenteData.house || 'Sin casa',
-        block: residenteData.block || 'Sin bloque',
-        residentId: user.uid,
-        scheduledTime: firebase.firestore.Timestamp.fromDate(new Date(scheduledTime)),
-        status: 'pendiente',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      // Generar QR
-      const qr = new QRious({
-        element: qrCanvas,
-        size: 250,
-        value: visitRef.id
-      });
-      qrCanvas.style.display = 'block';
-      msg.textContent = "Visita registrada y QR generado correctamente.";
-
-      form.reset();
-      cargarVisitas(user.uid);
-
-    } catch (error) {
-      console.error(error);
-      msg.textContent = "Error al registrar visita: " + error.message;
-    }
-  });
-
-  cargarVisitas(user.uid);
-}
-
-function cargarVisitas(residentUid) {
+function cargarVisitas(uid, residente) {
   const tbody = document.getElementById('visitasBody');
   db.collection('visits')
-    .where('residentId', '==', residentUid)
-    .orderBy('scheduledTime', 'desc')
+    .where('residentId', '==', uid)
+    .orderBy('createdAt', 'desc')
     .onSnapshot(snapshot => {
       tbody.innerHTML = '';
       if (snapshot.empty) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay visitas registradas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Sin visitas registradas</td></tr>';
       } else {
         snapshot.forEach(doc => {
           const v = doc.data();
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${v.visitorName}</td>
-            <td>${v.visitorPhone}</td>
-            <td>${v.scheduledTime ? v.scheduledTime.toDate().toLocaleString() : 'Sin hora'}</td>
+            <td>${v.status}</td>
+            <td>${v.createdAt?.toDate().toLocaleString() || ''}</td>
+            <td>${v.reference || ''}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    });
+}
+
+document.getElementById('anunciarVisitaBtn').addEventListener('click', async () => {
+  const visitorName = prompt("Nombre completo del visitante:");
+  if (!visitorName) return;
+  const reference = prompt("Referencia u observación:");
+
+  const user = auth.currentUser;
+  const userDoc = await db.collection('usuarios').doc(user.uid).get();
+  const residente = userDoc.data();
+
+  const visitRef = await db.collection('visits').add({
+    visitorName,
+    reference: reference || '',
+    residentName: residente.name,
+    residentPhone: residente.phone,
+    house: residente.house,
+    block: residente.block,
+    residentId: user.uid,
+    status: 'pendiente',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  const qrText = `Visitante: ${visitorName}\nAnunciante: ${residente.name}\nTel: ${residente.phone}\nCasa: ${residente.house} Bloque: ${residente.block}\nID: ${visitRef.id}`;
+  const qr = new QRious({
+    element: document.getElementById('qr'),
+    value: qrText,
+    size: 250
+  });
+
+  document.getElementById('qrContainer').style.display = 'block';
+  document.getElementById('compartirBtn').onclick = () => {
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent("Te comparto tu QR de visita:\n\n" + qrText)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+});
