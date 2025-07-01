@@ -12,39 +12,34 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <!-- QR Code Generator -->
-  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
 </head>
 <body>
   <h1>Dashboard Residente</h1>
   <button id="logoutBtn">Cerrar sesión</button>
 
-  <!-- Sección para crear visita -->
-  <h2>Crear Visita</h2>
-  <form id="crearVisitaForm">
-    <input type="text" id="nombreVisitante" placeholder="Nombre del visitante" required><br>
-    <input type="text" id="telefonoVisitante" placeholder="Teléfono del visitante" required><br>
-    <input type="datetime-local" id="fechaHoraVisita" required><br>
-    <button type="submit">Generar QR y Registrar Visita</button>
-    <p id="mensajeVisita"></p>
-  </form>
+  <div id="pagoPendiente" style="color: red; font-weight: bold; margin: 10px 0;"></div>
 
-  <!-- QR generado -->
-  <canvas id="qrCanvas" style="margin-top:10px; display:none;"></canvas>
+  <button id="anunciarVisitaBtn">Anunciar Visita</button>
 
-  <!-- Sección visitas creadas -->
-  <h2>Mis Visitas</h2>
-  <table id="tablaVisitas">
+  <div id="qrContainer" style="display: none; margin-top: 20px;">
+    <h3>QR generado para el visitante:</h3>
+    <canvas id="qr"></canvas><br>
+    <button id="compartirBtn">Compartir por WhatsApp</button>
+  </div>
+
+  <h2>Visitas Anunciadas</h2>
+  <table id="visitasTable">
     <thead>
       <tr>
-        <th>Visitante</th>
-        <th>Teléfono</th>
-        <th>Fecha y Hora</th>
+        <th>Nombre Visitante</th>
         <th>Estado</th>
+        <th>Fecha</th>
+        <th>Observaciones</th>
       </tr>
     </thead>
     <tbody id="visitasBody">
-      <tr><td colspan="4" style="text-align:center;">Cargando...</td></tr>
+      <tr><td colspan="4" style="text-align: center;">Cargando...</td></tr>
     </tbody>
   </table>
 
