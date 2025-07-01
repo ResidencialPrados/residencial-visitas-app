@@ -1,90 +1,107 @@
-// --- Inicializar Firebase ---
+// Inicializar Firebase
 firebase.initializeApp({
   apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
   authDomain: "residencial-qr.firebaseapp.com",
   projectId: "residencial-qr",
-  storageBucket: "residencial-qr.firebasestorage.app",
+  storageBucket: "residencial-qr.appspot.com",
   messagingSenderId: "21258599408",
-  appId: "1:21258599408:web:81a0a5b062aac6e6bdfb35",
-  measurementId: "G-TFYENFPEKX"
+  appId: "1:21258599408:web:81a0a5b062aac6e6bdfb35"
 });
+
 const auth = firebase.auth();
-const db   = firebase.firestore();
+const db = firebase.firestore();
+const qrCanvas = document.getElementById('qrCanvas');
+const qr = new QRious({
+  element: qrCanvas,
+  size: 250,
+  value: ''
+});
 
-// Referencia al contenedor principal
-const appDiv = document.getElementById('app');
+document.addEventListener('DOMContentLoaded', () => {
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      window.location.href = "../index.html";
+      return;
+    }
+    const uid = user.uid;
 
-// Escucha cambios de autenticación
-window.addEventListener('load', () => {
-  auth.onAuthStateChanged(user => {
-    if (user) loadResidentUI(user);
-    else showResidentLogin();
+    // Cargar datos del residente
+    const doc = await db.collection('usuarios').doc(uid).get();
+    if (!doc.exists) {
+      document.getElementById('residenteInfo').textContent = "Datos no encontrados. Contacte a administración.";
+      return;
+    }
+
+    const data = doc.data();
+    document.getElementById('residenteInfo').textContent =
+      `Nombre: ${data.nombre || 'N/A'}, Tel: ${data.phone || 'N/A'}, Bloque: ${data.block || 'N/A'}, Casa: ${data.house || 'N/A'}`;
+
+    document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+    cargarVisitas(uid, data);
+
+    manejarFormularioVisitas(uid, data);
   });
 });
 
-// Muestra formulario de login para residentes
-function showResidentLogin() {
-  appDiv.innerHTML = `
-    <h2>Login Residente</h2>
-    <form id="loginR">
-      <input id="email" type="email" required placeholder="Email"/><br>
-      <input id="pass"  type="password" required placeholder="Contraseña"/><br>
-      <button>Entrar</button>
-    </form>
-    <p id="errorR" style="color:red;"></p>
-  `;
-  document.getElementById('loginR').addEventListener('submit', e => {
+function manejarFormularioVisitas(uid, residenteData) {
+  const form = document.getElementById('visitForm');
+  const msg = document.getElementById('visitMsg');
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('email').value;
-    const pass  = document.getElementById('pass').value;
-    document.getElementById('errorR').textContent = '';
-    auth.signInWithEmailAndPassword(email, pass)
-      .catch(err => document.getElementById('errorR').textContent = err.message);
+    const visitorName = document.getElementById('visitorName').value.trim();
+    const visitTime = document.getElementById('visitTime').value;
+
+    if (!visitorName || !visitTime) {
+      msg.textContent = "Todos los campos son obligatorios.";
+      return;
+    }
+
+    const textoQR = `${residenteData.nombre || 'Residente'} anuncia a ${visitorName}, Casa ${residenteData.house || 'N/A'} Bloque ${residenteData.block || 'N/A'}, Tel ${residenteData.phone || 'N/A'}`;
+
+    qr.value = textoQR;
+
+    try {
+      await db.collection('visits').add({
+        visitorName,
+        residentName: residenteData.nombre || 'Residente',
+        residentId: uid,
+        scheduledTime: firebase.firestore.Timestamp.fromDate(new Date(visitTime)),
+        status: 'pendiente',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      msg.textContent = "Visita anunciada con éxito.";
+      form.reset();
+    } catch (error) {
+      console.error(error);
+      msg.textContent = "Error al registrar la visita: " + error.message;
+    }
   });
 }
 
-// Panel principal del residente
-function loadResidentUI(user) {
-  appDiv.innerHTML = `
-    <h2>Bienvenido, ${user.email}</h2>
-    <button id="logoutR">Cerrar Sesión</button>
-    <h3>Anunciar Nueva Visita</h3>
-    <form id="visitForm">
-      <input id="visitorName" type="text" required placeholder="Nombre del visitante"/><br>
-      <input id="house" type="text" required placeholder="Casa"/><br>
-      <input id="block" type="text" required placeholder="Bloque"/><br>
-      <input id="phone" type="tel" required placeholder="Tu teléfono"/><br>
-      <button>Generar QR</button>
-    </form>
-    <div id="qrcode"></div>
-  `;
-  document.getElementById('logoutR').onclick = () => auth.signOut();
-  document.getElementById('visitForm').addEventListener('submit', handleVisit);
-}
+function cargarVisitas(uid, residenteData) {
+  const tbody = document.getElementById('visitasList');
 
-// Maneja la creación de visita y generación de QR
-async function handleVisit(e) {
-  e.preventDefault();
-  const visitorName = document.getElementById('visitorName').value;
-  const house       = document.getElementById('house').value;
-  const block       = document.getElementById('block').value;
-  const phone       = document.getElementById('phone').value;
-  // Crea documento en Firestore
-  const ref = await db.collection('visits').add({
-    visitorName,
-    house,
-    block,
-    residentId: auth.currentUser.uid,
-    residentName: auth.currentUser.email,
-    residentPhone: phone,
-    status: 'pendiente',
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-  // Genera QR con el ID del documento
-  document.getElementById('qrcode').innerHTML = '';
-  new QRCode(document.getElementById('qrcode'), {
-    text: ref.id,
-    width: 200,
-    height: 200
-  });
+  db.collection('visits')
+    .where('residentId', '==', uid)
+    .orderBy('scheduledTime', 'desc')
+    .onSnapshot(snapshot => {
+      tbody.innerHTML = '';
+      if (snapshot.empty) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No hay visitas registradas</td></tr>';
+      } else {
+        snapshot.forEach(doc => {
+          const v = doc.data();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${v.visitorName || 'Sin nombre'}</td>
+            <td>${v.scheduledTime ? v.scheduledTime.toDate().toLocaleString() : 'Sin hora'}</td>
+            <td>${v.status || 'Sin estado'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    });
 }
