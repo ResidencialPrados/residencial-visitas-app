@@ -19,29 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
       cargarDashboardAdmin(user);
     }
   });
-
-  const rolSelect = document.getElementById('rolUsuario');
-  const camposDiv = document.getElementById('camposAdicionales');
-
-  rolSelect.addEventListener('change', () => {
-    const rol = rolSelect.value;
-    camposDiv.innerHTML = '';
-
-    if (rol === 'resident') {
-      camposDiv.innerHTML = `
-        <input type="text" id="nuevoNombre" placeholder="Nombre completo" required><br>
-        <input type="text" id="nuevoTelefono" placeholder="Teléfono" required><br>
-        <input type="text" id="nuevoBloque" placeholder="Bloque" required><br>
-        <input type="text" id="nuevaCasa" placeholder="Número de casa" required><br>
-      `;
-    } else {
-      camposDiv.innerHTML = `
-        <input type="text" id="nuevoNombre" placeholder="Nombre completo" required><br>
-        <input type="text" id="nuevoTelefono" placeholder="Teléfono" required><br>
-        <input type="text" id="nuevaIdentidad" placeholder="Número de identidad" required><br>
-      `;
-    }
-  });
 });
 
 function cargarDashboardAdmin(user) {
@@ -78,11 +55,12 @@ function cargarDashboardAdmin(user) {
   manejarCreacionUsuarios();
 }
 
+// Cargar visitas pendientes con el campo correcto
 function cargarVisitasPendientes() {
   const tbody = document.getElementById('visitas-body');
   db.collection('visits')
     .where('status', '==', 'pendiente')
-    .orderBy('scheduledTime', 'asc')
+    .orderBy('createdAt', 'asc')
     .onSnapshot(snapshot => {
       tbody.innerHTML = '';
       if (snapshot.empty) {
@@ -94,7 +72,7 @@ function cargarVisitasPendientes() {
           tr.innerHTML = `
             <td>${v.visitorName || 'Sin nombre'}</td>
             <td>${v.residentName || 'Sin residente'}</td>
-            <td>${v.scheduledTime ? v.scheduledTime.toDate().toLocaleString() : 'Sin hora'}</td>
+            <td>${v.createdAt ? v.createdAt.toDate().toLocaleString() : 'Sin hora'}</td>
             <td><button onclick="procesarVisita('${doc.id}')">Registrar</button></td>
           `;
           tbody.appendChild(tr);
@@ -103,6 +81,7 @@ function cargarVisitasPendientes() {
     });
 }
 
+// Procesar visita
 async function procesarVisita(visitaId) {
   try {
     const ref = db.collection('visits').doc(visitaId);
@@ -132,6 +111,7 @@ async function procesarVisita(visitaId) {
   }
 }
 
+// Cargar residentes
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
   db.collection('usuarios').where('rol', '==', 'resident').onSnapshot(snapshot => {
@@ -154,6 +134,7 @@ function cargarResidentes() {
   });
 }
 
+// Registrar pago
 async function registrarPago(id) {
   if (confirm("¿Registrar pago de este residente?")) {
     await db.collection('usuarios').doc(id).update({
@@ -164,6 +145,7 @@ async function registrarPago(id) {
   }
 }
 
+// Crear usuarios
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
   const msg = document.getElementById('crearUsuarioMsg');
@@ -173,44 +155,25 @@ function manejarCreacionUsuarios() {
     const email = document.getElementById('nuevoEmail').value.trim();
     const password = document.getElementById('nuevoPassword').value.trim();
     const rol = document.getElementById('rolUsuario').value;
-    const nombre = document.getElementById('nuevoNombre') ? document.getElementById('nuevoNombre').value.trim() : "";
-    const telefono = document.getElementById('nuevoTelefono') ? document.getElementById('nuevoTelefono').value.trim() : "";
-    const identidad = document.getElementById('nuevaIdentidad') ? document.getElementById('nuevaIdentidad').value.trim() : "";
-    const bloque = document.getElementById('nuevoBloque') ? document.getElementById('nuevoBloque').value.trim() : "";
-    const casa = document.getElementById('nuevaCasa') ? document.getElementById('nuevaCasa').value.trim() : "";
 
     msg.textContent = "Creando usuario...";
 
     try {
       const userCred = await auth.createUserWithEmailAndPassword(email, password);
       const uid = userCred.user.uid;
-
-      const data = {
+      await db.collection('usuarios').doc(uid).set({
         UID: uid,
         correo: email,
         rol: rol,
-        nombre: nombre,
-        telefono: telefono,
+        nombre: "",
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
-      };
-
-      if (rol === 'resident') {
-        data.bloque = bloque;
-        data.casa = casa;
-        data.estado_pago = "Pendiente";
-      } else {
-        data.identidad = identidad;
-      }
-
-      await db.collection('usuarios').doc(uid).set(data);
-
+      });
       msg.textContent = "Usuario creado con éxito.";
       form.reset();
-      document.getElementById('camposAdicionales').innerHTML = '';
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/email-already-in-use') {
-        msg.textContent = "El correo ya está registrado.";
+        msg.textContent = "El correo ya está registrado. Si desea asignar rol, hable con soporte.";
       } else {
         msg.textContent = "Error al crear usuario: " + error.message;
       }
