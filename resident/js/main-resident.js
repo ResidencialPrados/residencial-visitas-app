@@ -10,14 +10,11 @@ firebase.initializeApp({
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
 
-// Cerrar sesión
 document.getElementById('logoutBtn').addEventListener('click', () => {
   auth.signOut().then(() => window.location.href = '../index.html');
 });
 
-// Al cargar
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(async user => {
     if (!user) {
@@ -36,16 +33,19 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Mostrar visitas del residente
 function cargarVisitas(uid) {
   const tbody = document.getElementById('visitasBody');
+  const ahora = new Date();
+  const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
+
   db.collection('visits')
     .where('residentId', '==', uid)
+    .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(hace24h))
     .orderBy('createdAt', 'desc')
     .onSnapshot(snapshot => {
       tbody.innerHTML = '';
       if (snapshot.empty) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Sin visitas registradas</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Sin visitas registradas en las últimas 24 horas</td></tr>';
       } else {
         snapshot.forEach(doc => {
           const v = doc.data();
@@ -62,7 +62,6 @@ function cargarVisitas(uid) {
     });
 }
 
-// Anunciar nueva visita
 document.getElementById('anunciarVisitaBtn').addEventListener('click', async () => {
   const visitorName = prompt("Nombre completo del visitante:");
   if (!visitorName) return;
@@ -84,43 +83,21 @@ document.getElementById('anunciarVisitaBtn').addEventListener('click', async () 
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  // Generar QR localmente
+  // Generar QR en canvas
   const qrText = `Visitante: ${visitorName}\nAnunciante: ${residente.nombre}\nTel: ${residente.telefono}\nCasa: ${residente.casa} Bloque: ${residente.bloque}\nID: ${visitRef.id}`;
+  const qrCanvas = document.getElementById('qr');
   const qr = new QRious({
+    element: qrCanvas,
     value: qrText,
-    size: 300
+    size: 250
   });
 
-  // Convertir QR a Blob
-  const dataUrl = qr.toDataURL();
-  const response = await fetch(dataUrl);
-  const blob = await response.blob();
+  document.getElementById('qrContainer').style.display = 'block';
 
-  // Subir imagen a Firebase Storage
-  const storageRef = storage.ref(`qr/${visitRef.id}.png`);
-  await storageRef.put(blob);
-  const url = await storageRef.getDownloadURL();
-
-  // Mostrar QR en pantalla
-  const qrContainer = document.getElementById('qrContainer');
-  const qrCanvas = document.getElementById('qr');
-  const qrImg = new Image();
-  qrImg.src = url;
-  qrImg.style.maxWidth = '300px';
-  qrImg.style.display = 'block';
-  qrContainer.innerHTML = `
-    <h3>QR generado para el visitante:</h3>
-  `;
-  qrContainer.appendChild(qrImg);
-
-  // Botón compartir
-  const compartirBtn = document.createElement('button');
-  compartirBtn.textContent = "Compartir por WhatsApp";
-  compartirBtn.onclick = () => {
-    const whatsappText = `Te comparto tu QR de visita para mostrar en garita:\n\n${qrText}\n\nAbre y muestra esta imagen en la garita:\n${url}`;
+  // Compartir QR por WhatsApp
+  document.getElementById('compartirBtn').onclick = () => {
+    const whatsappText = `Te comparto el QR de visita para mostrar en garita:\n\n${qrText}\n\nMuestra esta imagen al guardia al ingresar.`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
     window.open(whatsappUrl, '_blank');
   };
-  qrContainer.appendChild(compartirBtn);
-  qrContainer.style.display = 'block';
 });
