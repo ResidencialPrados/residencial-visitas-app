@@ -76,6 +76,7 @@ document.getElementById('anunciarVisitaBtn').addEventListener('click', async () 
     return;
   }
 
+  // Creamos la visita y obtenemos su ID
   const visitRef = await db.collection('visits').add({
     visitorName,
     reference: reference || '',
@@ -88,19 +89,15 @@ document.getElementById('anunciarVisitaBtn').addEventListener('click', async () 
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  // Generar QR con solo el ID
-  const qrCanvas = document.getElementById('qr');
-  new QRious({
-    element: qrCanvas,
-    value: visitRef.id,
-    size: 250
-  });
+  // Generamos el enlace para el visitante
+  const visitLink = `${window.location.origin}/visitor.html?id=${visitRef.id}`;
+  const whatsappText =
+    `Favor ingresar al siguiente enlace y mostrarlo al Personal de seguridad de Residencial Los Prados:\n\n` +
+    `${visitLink}`;
 
-  document.getElementById('qrContainer').style.display = 'block';
-
-  document.getElementById('compartirBtn').onclick = () => {
-    const whatsappText = `Muestra este QR al guardia al ingresar a Residencial Prados para tu visita.`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
-    window.open(whatsappUrl, '_blank');
-  };
+  // Abrimos WhatsApp con el mensaje
+  window.open(
+    `https://wa.me/?text=${encodeURIComponent(whatsappText)}`,
+    '_blank'
+  );
 });
