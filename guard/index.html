@@ -45,6 +45,31 @@
     </tbody>
   </table>
 
+  <!-- Sección de estado de pagos de residentes -->
+  <h2>Estado de Pagos de Residentes</h2>
+
+  <!-- Campo de búsqueda -->
+  <input
+    type="text"
+    id="buscarResidente"
+    placeholder="Buscar residente por nombre, casa o bloque…"
+    style="width:100%; max-width:400px; padding:8px; margin:10px 0;"
+  />
+
+  <table id="pagos-residentes">
+    <thead>
+      <tr>
+        <th>Residente</th>
+        <th>Casa</th>
+        <th>Bloque</th>
+        <th>Estado de Pago</th>
+      </tr>
+    </thead>
+    <tbody id="pagos-body">
+      <!-- Se llenará dinámicamente -->
+    </tbody>
+  </table>
+
   <script src="js/main-guard.js"></script>
   <script>
     // Registrar el Service Worker
