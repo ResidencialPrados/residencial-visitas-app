@@ -11,12 +11,10 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Cerrar sesión
 document.getElementById('logoutBtn').addEventListener('click', () => {
   auth.signOut().then(() => window.location.href = '../index.html');
 });
 
-// Escuchar autenticación
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(user => {
     if (!user) {
@@ -44,30 +42,40 @@ function manejarQR() {
     if (!qrScanner) {
       qrDiv.style.display = 'block';
       qrScanner = new Html5Qrcode("qr-reader");
+
       qrScanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
         async (decodedText) => {
-          qrScanner.stop();
-          qrDiv.innerHTML = "";
-          await procesarVisita(decodedText);
+          try {
+            await procesarVisita(decodedText.trim());
+          } catch (e) {
+            console.error(e);
+          } finally {
+            qrScanner.stop().then(() => {
+              qrDiv.innerHTML = "";
+              qrDiv.style.display = 'none';
+              qrScanner = null;
+            });
+          }
         },
-        err => console.warn("QR Error:", err)
+        (err) => console.warn("QR Error:", err)
       );
     } else {
-      qrScanner.stop();
-      qrDiv.innerHTML = "";
-      qrDiv.style.display = 'none';
-      qrScanner = null;
+      qrScanner.stop().then(() => {
+        qrDiv.innerHTML = "";
+        qrDiv.style.display = 'none';
+        qrScanner = null;
+      });
     }
   });
 }
 
-// 📌 Cargar visitas (pendientes e ingresadas) de las últimas 24h
+// 📌 Cargar visitas últimas 24h
 function cargarVisitasPendientes() {
   const tbody = document.getElementById('visitas-body');
   const ahora = new Date();
-  const hace24h = new Date(ahora.getTime() - (24 * 60 * 60 * 1000));
+  const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
 
   db.collection('visits')
     .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(hace24h))
@@ -75,7 +83,7 @@ function cargarVisitasPendientes() {
     .onSnapshot(snapshot => {
       tbody.innerHTML = '';
       if (snapshot.empty) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay visitas recientes</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay visitas en las últimas 24 horas</td></tr>';
       } else {
         snapshot.forEach(doc => {
           const v = doc.data();
@@ -84,7 +92,9 @@ function cargarVisitasPendientes() {
             <td>${v.visitorName || 'Sin nombre'}</td>
             <td>${v.residentName || 'Sin residente'}</td>
             <td>${v.createdAt ? v.createdAt.toDate().toLocaleString() : 'Sin hora'}</td>
-            <td>${v.status === 'pendiente' ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>` : 'Ingresado'}</td>
+            <td>
+              ${v.status === 'pendiente' ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>` : 'Ingresado'}
+            </td>
           `;
           tbody.appendChild(tr);
         });
@@ -101,11 +111,13 @@ async function procesarVisita(visitaId) {
       alert("Visita no encontrada.");
       return;
     }
+
     const visita = snap.data();
     if (visita.status === 'ingresado') {
       alert("Esta visita ya fue ingresada.");
       return;
     }
+
     const marca = prompt("Marca del vehículo:");
     const color = prompt("Color del vehículo:");
     const placa = prompt("Placa del vehículo:");
@@ -115,19 +127,20 @@ async function procesarVisita(visitaId) {
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
       guardId: auth.currentUser.uid,
       vehicle: {
-        marca: marca || null,
-        color: color || null,
-        placa: placa || null
+        marca: marca || '',
+        color: color || '',
+        placa: placa || ''
       }
     });
-    alert("Ingreso registrado correctamente.");
+
+    alert("Ingreso registrado con éxito.");
   } catch (e) {
     console.error(e);
     alert("Error al procesar la visita.");
   }
 }
 
-// 📌 Cargar residentes
+// 📌 Cargar residentes con buscador
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
@@ -162,22 +175,19 @@ function cargarResidentes() {
     if (!texto) {
       consulta.onSnapshot(renderizar);
     } else {
-      db.collection('usuarios')
-        .where('rol', '==', 'resident')
-        .get()
-        .then(snapshot => {
-          const filtrados = snapshot.docs.filter(doc => {
-            const data = doc.data();
-            return (
-              (data.nombre || '').toLowerCase().includes(texto) ||
-              (data.correo || '').toLowerCase().includes(texto) ||
-              (data.telefono || '').toLowerCase().includes(texto) ||
-              (data.casa || '').toLowerCase().includes(texto) ||
-              (data.bloque || '').toLowerCase().includes(texto)
-            );
-          });
-          renderizar({ empty: filtrados.length === 0, forEach: cb => filtrados.forEach(cb) });
+      db.collection('usuarios').where('rol', '==', 'resident').get().then(snapshot => {
+        const filtrados = snapshot.docs.filter(doc => {
+          const d = doc.data();
+          return (
+            (d.nombre || '').toLowerCase().includes(texto) ||
+            (d.correo || '').toLowerCase().includes(texto) ||
+            (d.telefono || '').toLowerCase().includes(texto) ||
+            (d.casa || '').toLowerCase().includes(texto) ||
+            (d.bloque || '').toLowerCase().includes(texto)
+          );
         });
+        renderizar({ empty: filtrados.length === 0, forEach: cb => filtrados.forEach(cb) });
+      });
     }
   });
 }
@@ -193,35 +203,38 @@ async function registrarPago(id) {
   }
 }
 
-// 📌 Crear usuarios con rol únicamente (simplificado)
+// 📌 Crear usuarios
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
   const msg = document.getElementById('crearUsuarioMsg');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const email = document.getElementById('nuevoEmail').value.trim();
+    const password = document.getElementById('nuevoPassword').value.trim();
     const rol = document.getElementById('rolUsuario').value;
+
     msg.textContent = "Creando usuario...";
 
     try {
-      const userCred = await auth.createUserWithEmailAndPassword(
-        `usuario${Date.now()}@residencialqr.com`,
-        Math.random().toString(36).slice(-8) + "Aa1"
-      );
+      const userCred = await auth.createUserWithEmailAndPassword(email, password);
       const uid = userCred.user.uid;
       await db.collection('usuarios').doc(uid).set({
         UID: uid,
-        correo: userCred.user.email,
+        correo: email,
         rol: rol,
         nombre: "",
-        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp(),
-        estado_pago: "Pendiente"
+        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       });
-      msg.textContent = `Usuario creado: ${userCred.user.email}. Solicita al residente completar sus datos.`;
+      msg.textContent = "Usuario creado con éxito.";
       form.reset();
     } catch (error) {
       console.error(error);
-      msg.textContent = "Error: " + error.message;
+      if (error.code === 'auth/email-already-in-use') {
+        msg.textContent = "El correo ya está registrado. Contacte soporte para asignar rol.";
+      } else {
+        msg.textContent = "Error: " + error.message;
+      }
     }
   });
 }
