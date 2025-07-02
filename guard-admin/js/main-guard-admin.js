@@ -34,7 +34,7 @@ function inicializarDashboard(user) {
   manejarCreacionUsuarios();
 }
 
-// 📌 Manejo QR (versión actualizada para redirigir a process.html)
+// 📌 Manejo QR (ruta corregida para abrir process.html desde guard-admin)
 function manejarQR() {
   const btnQR = document.getElementById('activarQRBtn');
   const qrDiv = document.getElementById('qr-reader');
@@ -55,8 +55,8 @@ function manejarQR() {
             qrDiv.innerHTML = "";
             qrDiv.style.display = 'none';
             qrScanner = null;
-            // Redirigir al guardia a process.html con el ID
-            window.location.href = `${window.location.origin}/process.html?id=${visitId}`;
+            // Redirigir al guard-admin a process.html (sube un nivel)
+            window.location.href = `../process.html?id=${visitId}`;
           });
         },
         (err) => console.warn("QR Error:", err)
@@ -77,8 +77,7 @@ function manejarQR() {
 // 📌 Cargar visitas últimas 24h
 function cargarVisitasPendientes() {
   const tbody = document.getElementById('visitas-body');
-  const ahora = new Date();
-  const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
+  const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   db.collection('visits')
     .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(hace24h))
@@ -96,7 +95,9 @@ function cargarVisitasPendientes() {
             <td>${v.residentName || 'Sin residente'}</td>
             <td>${v.createdAt ? v.createdAt.toDate().toLocaleString() : 'Sin hora'}</td>
             <td>
-              ${v.status === 'pendiente' ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>` : 'Ingresado'}
+              ${v.status === 'pendiente'
+                ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
+                : 'Ingresado'}
             </td>
           `;
           tbody.appendChild(tr);
@@ -105,7 +106,7 @@ function cargarVisitasPendientes() {
     });
 }
 
-// 📌 Procesar visita (este método ya no se invoca vía QR, pero se mantiene para botón en tabla)
+// 📌 Procesar visita (método auxiliar para botón en tabla)
 async function procesarVisita(visitaId) {
   try {
     const ref = db.collection('visits').doc(visitaId);
@@ -128,11 +129,7 @@ async function procesarVisita(visitaId) {
       status: 'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
       guardId: auth.currentUser.uid,
-      vehicle: {
-        marca: marca || '',
-        color: color || '',
-        placa: placa || ''
-      }
+      vehicle: { marca: marca || '', color: color || '', placa: placa || '' }
     });
 
     alert("Ingreso registrado con éxito.");
@@ -169,7 +166,7 @@ function cargarResidentes() {
     }
   }
 
-  let consulta = db.collection('usuarios').where('rol', '==', 'resident');
+  const consulta = db.collection('usuarios').where('rol', '==', 'resident');
   consulta.onSnapshot(renderizar);
 
   buscador.addEventListener('input', () => {
@@ -180,13 +177,8 @@ function cargarResidentes() {
       db.collection('usuarios').where('rol', '==', 'resident').get().then(snapshot => {
         const filtrados = snapshot.docs.filter(doc => {
           const d = doc.data();
-          return (
-            (d.nombre || '').toLowerCase().includes(texto) ||
-            (d.correo || '').toLowerCase().includes(texto) ||
-            (d.telefono || '').toLowerCase().includes(texto) ||
-            (d.casa || '').toLowerCase().includes(texto) ||
-            (d.bloque || '').toLowerCase().includes(texto)
-          );
+          return ['nombre','correo','telefono','casa','bloque']
+            .some(field => (d[field] || '').toLowerCase().includes(texto));
         });
         renderizar({ empty: filtrados.length === 0, forEach: cb => filtrados.forEach(cb) });
       });
@@ -210,7 +202,6 @@ function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
   const rolSelect = document.getElementById('rolUsuario');
   const msg = document.getElementById('crearUsuarioMsg');
-
   const nombreInput = document.getElementById('nuevoNombre');
   const telefonoInput = document.getElementById('nuevoTelefono');
   const identidadInput = document.getElementById('nuevoIdentidad');
@@ -218,30 +209,18 @@ function manejarCreacionUsuarios() {
   const bloqueInput = document.getElementById('nuevoBloque');
 
   rolSelect.addEventListener('change', () => {
-    const rol = rolSelect.value;
-    // Reset visibilidad
-    nombreInput.style.display = 'none';
-    telefonoInput.style.display = 'none';
-    identidadInput.style.display = 'none';
-    casaInput.style.display = 'none';
-    bloqueInput.style.display = 'none';
-
-    if (rol === 'guard' || rol === 'guard_admin') {
-      nombreInput.style.display = 'block';
-      telefonoInput.style.display = 'block';
-      identidadInput.style.display = 'block';
-    } else if (rol === 'resident') {
-      nombreInput.style.display = 'block';
-      telefonoInput.style.display = 'block';
-      casaInput.style.display = 'block';
-      bloqueInput.style.display = 'block';
+    [nombreInput, telefonoInput, identidadInput, casaInput, bloqueInput].forEach(i => i.style.display = 'none');
+    if (rolSelect.value === 'guard' || rolSelect.value === 'guard_admin') {
+      [nombreInput, telefonoInput, identidadInput].forEach(i => i.style.display = 'block');
+    } else if (rolSelect.value === 'resident') {
+      [nombreInput, telefonoInput, casaInput, bloqueInput].forEach(i => i.style.display = 'block');
     }
   });
 
-  form.addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
-    const email = document.getElementById('nuevoEmail').value.trim();
-    const password = document.getElementById('nuevoPassword').value.trim();
+    const email = form.querySelector('#nuevoEmail').value.trim();
+    const password = form.querySelector('#nuevoPassword').value.trim();
     const rol = rolSelect.value;
     const nombre = nombreInput.value.trim();
     const telefono = telefonoInput.value.trim();
@@ -251,29 +230,21 @@ function manejarCreacionUsuarios() {
 
     msg.textContent = "Creando usuario...";
 
-    // Validaciones según rol
-    if (!rol) {
-      msg.textContent = "Debe seleccionar un rol.";
-      return;
-    }
-    if (!nombre || !telefono || (rol !== 'resident' && !identidad) || (rol === 'resident' && (!casa || !bloque))) {
+    if (!rol || !nombre || !telefono || (rol !== 'resident' && !identidad) || (rol === 'resident' && (!casa || !bloque))) {
       msg.textContent = "Complete todos los campos obligatorios según el rol.";
       return;
     }
 
     try {
-      const userCred = await auth.createUserWithEmailAndPassword(email, password);
-      const uid = userCred.user.uid;
-
+      const { user } = await auth.createUserWithEmailAndPassword(email, password);
       const data = {
-        UID: uid,
+        UID: user.uid,
         correo: email,
-        rol: rol,
-        nombre: nombre,
-        telefono: telefono,
+        rol,
+        nombre,
+        telefono,
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       };
-
       if (rol === 'resident') {
         data.casa = casa;
         data.bloque = bloque;
@@ -281,24 +252,16 @@ function manejarCreacionUsuarios() {
       } else {
         data.identidad = identidad;
       }
-
-      await db.collection('usuarios').doc(uid).set(data);
+      await db.collection('usuarios').doc(user.uid).set(data);
       msg.textContent = "Usuario creado con éxito.";
       form.reset();
       rolSelect.value = '';
-      nombreInput.style.display = 'none';
-      telefonoInput.style.display = 'none';
-      identidadInput.style.display = 'none';
-      casaInput.style.display = 'none';
-      bloqueInput.style.display = 'none';
-
+      [nombreInput, telefonoInput, identidadInput, casaInput, bloqueInput].forEach(i => i.style.display = 'none');
     } catch (error) {
       console.error(error);
-      if (error.code === 'auth/email-already-in-use') {
-        msg.textContent = "El correo ya está registrado.";
-      } else {
-        msg.textContent = "Error: " + error.message;
-      }
+      msg.textContent = error.code === 'auth/email-already-in-use'
+        ? "El correo ya está registrado."
+        : "Error: " + error.message;
     }
   });
 }
