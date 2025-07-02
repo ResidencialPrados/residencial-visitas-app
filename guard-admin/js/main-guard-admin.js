@@ -128,7 +128,11 @@ async function procesarVisita(visitaId) {
       status: 'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
       guardId: auth.currentUser.uid,
-      vehicle: { marca: marca || '', color: color || '', placa: placa || '' }
+      vehicle: {
+        marca: marca || '',
+        color: color || '',
+        placa: placa || ''
+      }
     });
 
     alert("Ingreso registrado con éxito.");
@@ -145,7 +149,7 @@ function cargarResidentes() {
 
   async function fetchAndRender(filterText = "") {
     const snapshot = await db.collection('usuarios')
-      .where('rol','==','resident')
+      .where('rol', '==', 'resident')
       .get();
 
     const pendientes = [];
@@ -153,8 +157,8 @@ function cargarResidentes() {
     snapshot.docs.forEach(doc => {
       const r = doc.data();
       const text = filterText.toLowerCase();
-      const hayMatch = ['nombre','correo','telefono','casa','bloque']
-        .some(f => (r[f]||'').toLowerCase().includes(text));
+      const hayMatch = ['nombre', 'correo', 'telefono', 'casa', 'bloque']
+        .some(f => (r[f] || '').toLowerCase().includes(text));
       if (!hayMatch) return;
 
       if (r.estado_pago === 'Pagado') pagados.push({ id: doc.id, ...r });
@@ -202,9 +206,75 @@ async function registrarPago(id) {
       fecha_pago: firebase.firestore.FieldValue.serverTimestamp()
     });
     alert("Pago registrado con éxito.");
-    // refrescar la tabla
     cargarResidentes();
   }
 }
 
-// 📌 Otros métodos (creación de usuarios, etc.) se mantienen igual
+// 📌 Manejar creación de usuarios con campos dinámicos
+function manejarCreacionUsuarios() {
+  const form = document.getElementById('crearUsuarioForm');
+  const rolSelect = document.getElementById('rolUsuario');
+  const msg = document.getElementById('crearUsuarioMsg');
+  const nombreInput = document.getElementById('nuevoNombre');
+  const telefonoInput = document.getElementById('nuevoTelefono');
+  const identidadInput = document.getElementById('nuevoIdentidad');
+  const casaInput = document.getElementById('nuevoCasa');
+  const bloqueInput = document.getElementById('nuevoBloque');
+
+  rolSelect.addEventListener('change', () => {
+    [nombreInput, telefonoInput, identidadInput, casaInput, bloqueInput].forEach(i => i.style.display = 'none');
+    if (rolSelect.value === 'guard' || rolSelect.value === 'guard_admin') {
+      [nombreInput, telefonoInput, identidadInput].forEach(i => i.style.display = 'block');
+    } else if (rolSelect.value === 'resident') {
+      [nombreInput, telefonoInput, casaInput, bloqueInput].forEach(i => i.style.display = 'block');
+    }
+  });
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = form.querySelector('#nuevoEmail').value.trim();
+    const password = form.querySelector('#nuevoPassword').value.trim();
+    const rol = rolSelect.value;
+    const nombre = nombreInput.value.trim();
+    const telefono = telefonoInput.value.trim();
+    const identidad = identidadInput.value.trim();
+    const casa = casaInput.value.trim();
+    const bloque = bloqueInput.value.trim();
+
+    msg.textContent = "Creando usuario...";
+
+    if (!rol || !nombre || !telefono || (rol !== 'resident' && !identidad) || (rol === 'resident' && (!casa || !bloque))) {
+      msg.textContent = "Complete todos los campos obligatorios según el rol.";
+      return;
+    }
+
+    try {
+      const { user } = await auth.createUserWithEmailAndPassword(email, password);
+      const data = {
+        UID: user.uid,
+        correo: email,
+        rol,
+        nombre,
+        telefono,
+        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      if (rol === 'resident') {
+        data.casa = casa;
+        data.bloque = bloque;
+        data.estado_pago = 'Pendiente';
+      } else {
+        data.identidad = identidad;
+      }
+      await db.collection('usuarios').doc(user.uid).set(data);
+      msg.textContent = "Usuario creado con éxito.";
+      form.reset();
+      rolSelect.value = '';
+      [nombreInput, telefonoInput, identidadInput, casaInput, bloqueInput].forEach(i => i.style.display = 'none');
+    } catch (error) {
+      console.error(error);
+      msg.textContent = error.code === 'auth/email-already-in-use'
+        ? "El correo ya está registrado."
+        : "Error: " + error.message;
+    }
+  });
+}
