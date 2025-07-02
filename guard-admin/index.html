@@ -49,25 +49,50 @@
     </tbody>
   </table>
 
-  <h2>Gestión de Usuarios</h2>
+  <h2>Registro de Usuario</h2>
   <form id="crearUsuarioForm">
-    <input type="email" id="nuevoEmail" placeholder="Email del nuevo usuario" required><br>
-    <input type="password" id="nuevoPassword" placeholder="Contraseña" required><br>
-    <select id="rolUsuario" required>
-      <option value="">Seleccione Rol</option>
-      <option value="guard">Guardia Común</option>
-      <option value="guard_admin">Guardia Administrador</option>
-      <option value="resident">Residente</option>
-    </select><br>
+    <label>
+      Rol:
+      <select id="rolUsuario" required>
+        <option value="">Seleccione rol</option>
+        <option value="guard">Guardia Común</option>
+        <option value="guard_admin">Guardia Administrador</option>
+        <option value="resident">Residente</option>
+      </select>
+    </label>
 
-    <!-- Campos adicionales dinámicos -->
-    <input type="text" id="nuevoNombre" placeholder="Nombre completo" style="display:none;"><br>
-    <input type="text" id="nuevoTelefono" placeholder="Teléfono" style="display:none;"><br>
-    <input type="text" id="nuevoIdentidad" placeholder="Identidad" style="display:none;"><br>
-    <input type="text" id="nuevoCasa" placeholder="Casa" style="display:none;"><br>
-    <input type="text" id="nuevoBloque" placeholder="Bloque" style="display:none;"><br>
+    <div id="camposExtra" style="display:none; margin-top:10px;">
+      <label>
+        Email:
+        <input type="email" id="nuevoEmail" required>
+      </label>
+      <label>
+        Contraseña:
+        <input type="password" id="nuevoPassword" required>
+      </label>
+      <label id="labelNombre" style="display:none;">
+        Nombre completo:
+        <input type="text" id="nuevoNombre">
+      </label>
+      <label id="labelTelefono" style="display:none;">
+        Teléfono:
+        <input type="text" id="nuevoTelefono">
+      </label>
+      <label id="labelIdentidad" style="display:none;">
+        Identidad:
+        <input type="text" id="nuevoIdentidad">
+      </label>
+      <label id="labelCasa" style="display:none;">
+        Casa:
+        <input type="text" id="nuevoCasa">
+      </label>
+      <label id="labelBloque" style="display:none;">
+        Bloque:
+        <input type="text" id="nuevoBloque">
+      </label>
+    </div>
 
-    <button type="submit">Crear Usuario</button>
+    <button type="submit" style="margin-top:10px;">Crear Usuario</button>
     <p id="crearUsuarioMsg"></p>
   </form>
 
