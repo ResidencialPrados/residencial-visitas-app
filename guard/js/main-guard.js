@@ -10,16 +10,12 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-// ─── Cerrar sesión ─────────────────────────────────────────────────────────────
-document.getElementById('logoutBtn').addEventListener('click', () =>
-  auth.signOut().then(() => window.location.href = "../index.html")
-);
-
-// ─── Verificar sesión al cargar ───────────────────────────────────────────────
+// ─── Verificar sesión al cargar ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(user => {
     if (!user) {
-      window.location.href = "../index.html";
+      alert("Sesión no iniciada. Redirigiendo a login.");
+      window.location.href = "/residencial-visitas-app/index.html";
     } else {
       iniciarDashboardGuardia();
     }
@@ -28,33 +24,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ─── Inicialización del Dashboard ──────────────────────────────────────────────
 function iniciarDashboardGuardia() {
-  manejarQR();
-  cargarVisitasPendientes();
-  cargarResidentes();
-}
+  // Cerrar sesión
+  document.getElementById('logoutBtn').addEventListener('click', () =>
+    auth.signOut().then(() => window.location.href = "/residencial-visitas-app/index.html")
+  );
 
-// ─── Manejo de QR ──────────────────────────────────────────────────────────────
-function manejarQR() {
+  // QR
   const btnQR = document.getElementById('activarQRBtn');
   const qrDiv = document.getElementById('qr-reader');
   let qrScanner = null;
-
   btnQR.addEventListener('click', () => {
     if (!qrScanner) {
-      qrDiv.style.display = 'block';
+      qrDiv.style.display = "block";
       qrScanner = new Html5Qrcode("qr-reader");
       qrScanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
-        decodedText => {
-          const visitId = decodedText.trim();
-          qrScanner.stop().then(() => {
-            qrDiv.innerHTML = "";
-            qrDiv.style.display = 'none';
-            qrScanner = null;
-            // Redirige a process.html para el guardia
-            window.location.href = `../process.html?id=${visitId}`;
-          });
+        async decodedText => {
+          await qrScanner.stop();
+          qrDiv.innerHTML = "";
+          qrDiv.style.display = "none";
+          qrScanner = null;
+          await procesarVisita(decodedText.trim());
         },
         err => console.warn("QR Scan error:", err)
       ).catch(err => {
@@ -64,14 +55,17 @@ function manejarQR() {
     } else {
       qrScanner.stop().then(() => {
         qrDiv.innerHTML = "";
-        qrDiv.style.display = 'none';
+        qrDiv.style.display = "none";
         qrScanner = null;
       });
     }
   });
+
+  cargarVisitasPendientes();
+  cargarPagosResidentes();
 }
 
-// ─── Cargar visitas pendientes (últimas 24h) ─────────────────────────────────
+// ─── Cargar visitas pendientes (últimas 24 h) ─────────────────────────────────
 function cargarVisitasPendientes() {
   const tbody = document.getElementById('visitas-body');
   const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -79,9 +73,8 @@ function cargarVisitasPendientes() {
   db.collection('visits')
     .where('status', '==', 'pendiente')
     .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(hace24h))
-    .orderBy('createdAt', 'asc')
+    .orderBy('createdAt', 'desc')
     .onSnapshot(snapshot => {
-      console.log("Visitas pendientes:", snapshot.docs.map(d=>d.data()));
       tbody.innerHTML = '';
       if (snapshot.empty) {
         tbody.innerHTML = `
@@ -92,30 +85,26 @@ function cargarVisitasPendientes() {
           </tr>`;
       } else {
         snapshot.forEach(doc => {
-          const v = doc.data();
-          const hora = v.createdAt
-            ? v.createdAt.toDate().toLocaleString()
-            : '';
-          const tr = document.createElement('tr');
+          const v    = doc.data();
+          const hora = v.createdAt?.toDate().toLocaleString() || 'Sin hora';
+          const tr   = document.createElement('tr');
           tr.innerHTML = `
-            <td>${v.visitorName || 'Sin nombre'}</td>
+            <td>${v.visitorName  || ''}</td>
             <td>${v.vehicle?.marca || ''}</td>
             <td>${v.vehicle?.color || ''}</td>
             <td>${v.vehicle?.placa || ''}</td>
-            <td>${v.house || ''}</td>
-            <td>${v.block || ''}</td>
-            <td>${v.residentPhone || ''}</td>
+            <td>${v.house        || ''}</td>
+            <td>${v.block        || ''}</td>
+            <td>${v.residentPhone|| ''}</td>
             <td class="guard-cell">${v.guardName || ''}</td>
             <td>${hora}</td>
             <td>
-              ${v.status === 'pendiente'
-                ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
-                : 'Ingresado'}
+              <button onclick="procesarVisita('${doc.id}')">Registrar</button>
             </td>
           `;
           tbody.appendChild(tr);
 
-          // Si no está guardName, lo buscamos por guardId
+          // Si hace falta nombre del guardia, lo traemos por guardId
           if (!v.guardName && v.guardId) {
             db.collection('usuarios').doc(v.guardId).get()
               .then(uSnap => {
@@ -131,13 +120,13 @@ function cargarVisitasPendientes() {
       tbody.innerHTML = `
         <tr>
           <td colspan="10" style="text-align:center; color:red;">
-            Error al cargar visitas. Verifica la consola.
+            Error al cargar visitas. Mira la consola.
           </td>
         </tr>`;
     });
 }
 
-// ─── Procesar visita (botón) ───────────────────────────────────────────────────
+// ─── Procesar una visita (botón o QR) ─────────────────────────────────────────
 async function procesarVisita(visitaId) {
   try {
     const ref  = db.collection('visits').doc(visitaId);
@@ -146,15 +135,15 @@ async function procesarVisita(visitaId) {
     const v = snap.data();
     if (v.status === 'ingresado') return alert("Esta visita ya fue ingresada.");
 
-    // Pedir datos del vehículo
-    const marca = prompt("Marca (opcional):","") || '';
-    const color = prompt("Color (opcional):","") || '';
-    const placa = prompt("Placa (opcional):","") || '';
+    // Datos del vehículo
+    const marca = prompt("Marca (opcional):","") || null;
+    const color = prompt("Color (opcional):","") || null;
+    const placa = prompt("Placa (opcional):","") || null;
 
-    // Obtener nombre del guardia
+    // Nombre del guardia
     const guardUid  = auth.currentUser.uid;
     const guardSnap = await db.collection('usuarios').doc(guardUid).get();
-    const guardName = guardSnap.exists ? guardSnap.data().nombre : '';
+    const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
 
     // Actualizar
     await ref.update({
@@ -165,15 +154,15 @@ async function procesarVisita(visitaId) {
       vehicle: { marca, color, placa }
     });
 
-    alert("Ingreso registrado con éxito.");
+    alert("Ingreso registrado correctamente.");
   } catch (e) {
     console.error("Error procesando visita:", e);
-    alert("Error al registrar visita. Revisa la consola.");
+    alert("Error al registrar visita. Mira la consola.");
   }
 }
 
-// ─── Cargar y filtrar residentes ───────────────────────────────────────────────
-function cargarResidentes() {
+// ─── Cargar y filtrar estado de pagos de residentes ──────────────────────────
+function cargarPagosResidentes() {
   const tbody    = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
   let cache      = [];
@@ -189,33 +178,32 @@ function cargarResidentes() {
 
   function render(list, filter) {
     const txt = filter.trim().toLowerCase();
-    const pendientes = [];
-    const pagados = [];
-    list.forEach(r => {
-      if (!['nombre','correo','telefono','casa','bloque']
-            .some(f => (r[f]||'').toLowerCase().includes(txt))) return;
-      if (r.estado_pago === 'Pagado') pagados.push(r);
-      else pendientes.push(r);
-    });
-    const all = pendientes.concat(pagados);
-    tbody.innerHTML = '';
-    if (all.length === 0) {
+    const filt = list.filter(r =>
+      (r.nombre||'').toLowerCase().includes(txt) ||
+      (r.correo||'').toLowerCase().includes(txt) ||
+      String(r.casa||'').includes(txt) ||
+      String(r.bloque||'').includes(txt) ||
+      (r.telefono||'').toLowerCase().includes(txt)
+    );
+    if (!filt.length) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="6" style="text-align:center;">No hay residentes registrados</td>
+          <td colspan="6" style="text-align:center;">No hay residentes que coincidan</td>
         </tr>`;
       return;
     }
-    all.forEach(r => {
+    tbody.innerHTML = '';
+    filt.forEach(r => {
+      const est = r.estado_pago==='Pagado' ? 'Pagado' : 'Pendiente';
       const tr = document.createElement('tr');
-      if (r.estado_pago !== 'Pagado') tr.classList.add('pendiente');
+      if (est==='Pendiente') tr.classList.add('pendiente');
       tr.innerHTML = `
-        <td>${r.nombre || ''}</td>
-        <td>${r.correo || ''}</td>
-        <td>${r.telefono || ''}</td>
-        <td>${r.casa || ''}</td>
-        <td>${r.bloque || ''}</td>
-        <td>${r.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente'}</td>
+        <td>${r.nombre}</td>
+        <td>${r.correo}</td>
+        <td>${r.telefono}</td>
+        <td>${r.casa}</td>
+        <td>${r.bloque}</td>
+        <td>${est}</td>
       `;
       tbody.appendChild(tr);
     });
