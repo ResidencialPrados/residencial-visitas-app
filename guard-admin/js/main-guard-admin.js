@@ -11,10 +11,12 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Cerrar sesión
 document.getElementById('logoutBtn').addEventListener('click', () => {
   auth.signOut().then(() => window.location.href = '../index.html');
 });
 
+// Inicializar al cargar
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(user => {
     if (!user) {
@@ -111,7 +113,6 @@ async function procesarVisita(visitaId) {
       alert("Visita no encontrada.");
       return;
     }
-
     const visita = snap.data();
     if (visita.status === 'ingresado') {
       alert("Esta visita ya fue ingresada.");
@@ -203,35 +204,97 @@ async function registrarPago(id) {
   }
 }
 
-// 📌 Crear usuarios
+// 📌 Manejar creación de usuarios con campos dinámicos
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
+  const rolSelect = document.getElementById('rolUsuario');
   const msg = document.getElementById('crearUsuarioMsg');
+
+  const nombreInput = document.getElementById('nuevoNombre');
+  const telefonoInput = document.getElementById('nuevoTelefono');
+  const identidadInput = document.getElementById('nuevoIdentidad');
+  const casaInput = document.getElementById('nuevoCasa');
+  const bloqueInput = document.getElementById('nuevoBloque');
+
+  rolSelect.addEventListener('change', () => {
+    const rol = rolSelect.value;
+    // Reset visibilidad
+    nombreInput.style.display = 'none';
+    telefonoInput.style.display = 'none';
+    identidadInput.style.display = 'none';
+    casaInput.style.display = 'none';
+    bloqueInput.style.display = 'none';
+
+    if (rol === 'guard' || rol === 'guard_admin') {
+      nombreInput.style.display = 'block';
+      telefonoInput.style.display = 'block';
+      identidadInput.style.display = 'block';
+    } else if (rol === 'resident') {
+      nombreInput.style.display = 'block';
+      telefonoInput.style.display = 'block';
+      casaInput.style.display = 'block';
+      bloqueInput.style.display = 'block';
+    }
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('nuevoEmail').value.trim();
     const password = document.getElementById('nuevoPassword').value.trim();
-    const rol = document.getElementById('rolUsuario').value;
+    const rol = rolSelect.value;
+    const nombre = nombreInput.value.trim();
+    const telefono = telefonoInput.value.trim();
+    const identidad = identidadInput.value.trim();
+    const casa = casaInput.value.trim();
+    const bloque = bloqueInput.value.trim();
 
     msg.textContent = "Creando usuario...";
+
+    // Validaciones según rol
+    if (!rol) {
+      msg.textContent = "Debe seleccionar un rol.";
+      return;
+    }
+    if (!nombre || !telefono || (rol !== 'resident' && !identidad) || (rol === 'resident' && (!casa || !bloque))) {
+      msg.textContent = "Complete todos los campos obligatorios según el rol.";
+      return;
+    }
 
     try {
       const userCred = await auth.createUserWithEmailAndPassword(email, password);
       const uid = userCred.user.uid;
-      await db.collection('usuarios').doc(uid).set({
+
+      const data = {
         UID: uid,
         correo: email,
         rol: rol,
-        nombre: "",
+        nombre: nombre,
+        telefono: telefono,
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      };
+
+      if (rol === 'resident') {
+        data.casa = casa;
+        data.bloque = bloque;
+        data.estado_pago = 'Pendiente';
+      } else {
+        data.identidad = identidad;
+      }
+
+      await db.collection('usuarios').doc(uid).set(data);
       msg.textContent = "Usuario creado con éxito.";
       form.reset();
+      rolSelect.value = '';
+      nombreInput.style.display = 'none';
+      telefonoInput.style.display = 'none';
+      identidadInput.style.display = 'none';
+      casaInput.style.display = 'none';
+      bloqueInput.style.display = 'none';
+
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/email-already-in-use') {
-        msg.textContent = "El correo ya está registrado. Contacte soporte para asignar rol.";
+        msg.textContent = "El correo ya está registrado.";
       } else {
         msg.textContent = "Error: " + error.message;
       }
