@@ -11,19 +11,31 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Cerrar sesión
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  auth.signOut().then(() => window.location.href = '../index.html');
+});
+
+// Escuchar autenticación
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(user => {
     if (!user) {
       window.location.href = "../index.html";
     } else {
-      cargarDashboardAdmin(user);
+      inicializarDashboard(user);
     }
   });
 });
 
-function cargarDashboardAdmin(user) {
-  document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+function inicializarDashboard(user) {
+  manejarQR();
+  cargarVisitasPendientes();
+  cargarResidentes();
+  manejarCreacionUsuarios();
+}
 
+// 📌 Manejo QR
+function manejarQR() {
   const btnQR = document.getElementById('activarQRBtn');
   const qrDiv = document.getElementById('qr-reader');
   let qrScanner = null;
@@ -49,17 +61,13 @@ function cargarDashboardAdmin(user) {
       qrScanner = null;
     }
   });
-
-  cargarVisitasPendientes();
-  cargarResidentes();
-  manejarCreacionUsuarios();
 }
 
-// Cargar visitas pendientes de las últimas 24 horas
+// 📌 Cargar visitas pendientes (últimas 24h)
 function cargarVisitasPendientes() {
   const tbody = document.getElementById('visitas-body');
   const ahora = new Date();
-  const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
+  const hace24h = new Date(ahora.getTime() - (24 * 60 * 60 * 1000));
 
   db.collection('visits')
     .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(hace24h))
@@ -85,7 +93,7 @@ function cargarVisitasPendientes() {
     });
 }
 
-// Procesar visita
+// 📌 Procesar visita
 async function procesarVisita(visitaId) {
   try {
     const ref = db.collection('visits').doc(visitaId);
@@ -106,7 +114,11 @@ async function procesarVisita(visitaId) {
       status: 'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
       guardId: auth.currentUser.uid,
-      vehicle: { marca: marca || null, color: color || null, placa: placa || null }
+      vehicle: {
+        marca: marca || null,
+        color: color || null,
+        placa: placa || null
+      }
     });
     alert("Ingreso registrado con éxito.");
   } catch (e) {
@@ -115,63 +127,73 @@ async function procesarVisita(visitaId) {
   }
 }
 
-// Cargar residentes con información completa y buscador
+// 📌 Cargar residentes con buscador
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
-  const searchInput = document.getElementById('buscarResidente');
+  const buscador = document.getElementById('buscadorResidentes');
 
-  searchInput.addEventListener('input', () => {
-    const filtro = searchInput.value.toLowerCase();
-    mostrarResidentes(tbody, filtro);
-  });
-
-  mostrarResidentes(tbody, "");
-}
-
-function mostrarResidentes(tbody, filtro) {
-  db.collection('usuarios').where('rol', '==', 'resident').onSnapshot(snapshot => {
+  function renderizar(snapshot) {
     tbody.innerHTML = '';
     if (snapshot.empty) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay residentes registrados</td></tr>';
     } else {
       snapshot.forEach(doc => {
         const r = doc.data();
-        if (
-          r.nombre?.toLowerCase().includes(filtro) ||
-          r.correo?.toLowerCase().includes(filtro) ||
-          r.telefono?.toLowerCase().includes(filtro) ||
-          r.casa?.toLowerCase().includes(filtro) ||
-          r.bloque?.toLowerCase().includes(filtro)
-        ) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${r.nombre || 'Sin nombre'}</td>
-            <td>${r.correo || 'Sin correo'}</td>
-            <td>${r.telefono || 'Sin teléfono'}</td>
-            <td>${r.casa || 'Sin casa'}</td>
-            <td>${r.bloque || 'Sin bloque'}</td>
-            <td>${r.estado_pago || 'Pendiente'}</td>
-            <td><button onclick="registrarPago('${doc.id}')">Registrar Pago</button></td>
-          `;
-          tbody.appendChild(tr);
-        }
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.nombre || ''}</td>
+          <td>${r.correo || ''}</td>
+          <td>${r.telefono || ''}</td>
+          <td>${r.casa || ''}</td>
+          <td>${r.bloque || ''}</td>
+          <td>${r.estado_pago || 'Pendiente'}</td>
+          <td><button onclick="registrarPago('${doc.id}')">Registrar Pago</button></td>
+        `;
+        tbody.appendChild(tr);
       });
+    }
+  }
+
+  let consulta = db.collection('usuarios').where('rol', '==', 'resident');
+  consulta.onSnapshot(renderizar);
+
+  buscador.addEventListener('input', () => {
+    const texto = buscador.value.toLowerCase();
+    if (!texto) {
+      consulta.onSnapshot(renderizar);
+    } else {
+      db.collection('usuarios')
+        .where('rol', '==', 'resident')
+        .get()
+        .then(snapshot => {
+          const filtrados = snapshot.docs.filter(doc => {
+            const data = doc.data();
+            return (
+              (data.nombre || '').toLowerCase().includes(texto) ||
+              (data.correo || '').toLowerCase().includes(texto) ||
+              (data.telefono || '').toLowerCase().includes(texto) ||
+              (data.casa || '').toLowerCase().includes(texto) ||
+              (data.bloque || '').toLowerCase().includes(texto)
+            );
+          });
+          renderizar({ empty: filtrados.length === 0, forEach: cb => filtrados.forEach(cb) });
+        });
     }
   });
 }
 
-// Registrar pago
+// 📌 Registrar pago
 async function registrarPago(id) {
   if (confirm("¿Registrar pago de este residente?")) {
     await db.collection('usuarios').doc(id).update({
       estado_pago: 'Pagado',
       fecha_pago: firebase.firestore.FieldValue.serverTimestamp()
     });
-    alert("Pago registrado.");
+    alert("Pago registrado con éxito.");
   }
 }
 
-// Crear usuarios
+// 📌 Crear usuarios
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
   const msg = document.getElementById('crearUsuarioMsg');
@@ -192,10 +214,6 @@ function manejarCreacionUsuarios() {
         correo: email,
         rol: rol,
         nombre: "",
-        telefono: "",
-        casa: "",
-        bloque: "",
-        estado_pago: "Pendiente",
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       });
       msg.textContent = "Usuario creado con éxito.";
@@ -203,9 +221,9 @@ function manejarCreacionUsuarios() {
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/email-already-in-use') {
-        msg.textContent = "El correo ya está registrado. Si desea asignar rol, hable con soporte.";
+        msg.textContent = "El correo ya está registrado. Contacta soporte para asignar rol.";
       } else {
-        msg.textContent = "Error al crear usuario: " + error.message;
+        msg.textContent = "Error: " + error.message;
       }
     }
   });
