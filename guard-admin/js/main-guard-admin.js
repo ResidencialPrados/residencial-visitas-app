@@ -84,15 +84,21 @@ function cargarVisitasPendientes() {
     .onSnapshot(snapshot => {
       tbody.innerHTML = '';
       if (snapshot.empty) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay visitas en las últimas 24 horas</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No hay visitas en las últimas 24 horas</td></tr>';
       } else {
         snapshot.forEach(doc => {
           const v = doc.data();
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${v.visitorName || 'Sin nombre'}</td>
-            <td>${v.residentName || 'Sin residente'}</td>
-            <td>${v.createdAt ? v.createdAt.toDate().toLocaleString() : 'Sin hora'}</td>
+            <td>${v.vehicle?.marca || ''}</td>
+            <td>${v.vehicle?.color || ''}</td>
+            <td>${v.vehicle?.placa || ''}</td>
+            <td>${v.house || ''}</td>
+            <td>${v.block || ''}</td>
+            <td>${v.residentPhone || ''}</td>
+            <td>${v.guardId || ''}</td>
+            <td>${v.createdAt ? v.createdAt.toDate().toLocaleString() : ''}</td>
             <td>
               ${v.status === 'pendiente'
                 ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
@@ -157,9 +163,9 @@ function cargarResidentes() {
     snapshot.docs.forEach(doc => {
       const r = doc.data();
       const text = filterText.toLowerCase();
-      const hayMatch = ['nombre', 'correo', 'telefono', 'casa', 'bloque']
-        .some(f => (r[f] || '').toLowerCase().includes(text));
-      if (!hayMatch) return;
+      const match = ['nombre', 'correo', 'telefono', 'casa', 'bloque']
+        .some(field => (r[field] || '').toLowerCase().includes(text));
+      if (!match) return;
 
       if (r.estado_pago === 'Pagado') pagados.push({ id: doc.id, ...r });
       else pendientes.push({ id: doc.id, ...r });
@@ -214,37 +220,62 @@ async function registrarPago(id) {
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
   const rolSelect = document.getElementById('rolUsuario');
-  const msg = document.getElementById('crearUsuarioMsg');
-  const nombreInput = document.getElementById('nuevoNombre');
-  const telefonoInput = document.getElementById('nuevoTelefono');
+  const emailInput = document.getElementById('nuevoEmail');
+  const passInput  = document.getElementById('nuevoPassword');
+  const nombreInput    = document.getElementById('nuevoNombre');
+  const telefonoInput  = document.getElementById('nuevoTelefono');
   const identidadInput = document.getElementById('nuevoIdentidad');
-  const casaInput = document.getElementById('nuevoCasa');
-  const bloqueInput = document.getElementById('nuevoBloque');
+  const casaInput      = document.getElementById('nuevoCasa');
+  const bloqueInput    = document.getElementById('nuevoBloque');
+  const msg            = document.getElementById('crearUsuarioMsg');
 
+  // Al cambiar rol, mostrar/ocultar campos
   rolSelect.addEventListener('change', () => {
-    [nombreInput, telefonoInput, identidadInput, casaInput, bloqueInput].forEach(i => i.style.display = 'none');
+    // Siempre mostrar email y contraseña
+    emailInput.style.display = 'block';
+    passInput.style.display  = 'block';
+
+    // Ocultar todos los demás
+    [nombreInput, telefonoInput, identidadInput, casaInput, bloqueInput]
+      .forEach(i => i.style.display = 'none');
+
     if (rolSelect.value === 'guard' || rolSelect.value === 'guard_admin') {
-      [nombreInput, telefonoInput, identidadInput].forEach(i => i.style.display = 'block');
+      nombreInput.style.display    = 'block';
+      telefonoInput.style.display  = 'block';
+      identidadInput.style.display = 'block';
     } else if (rolSelect.value === 'resident') {
-      [nombreInput, telefonoInput, casaInput, bloqueInput].forEach(i => i.style.display = 'block');
+      nombreInput.style.display   = 'block';
+      telefonoInput.style.display = 'block';
+      casaInput.style.display     = 'block';
+      bloqueInput.style.display   = 'block';
     }
   });
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    const email = form.querySelector('#nuevoEmail').value.trim();
-    const password = form.querySelector('#nuevoPassword').value.trim();
-    const rol = rolSelect.value;
-    const nombre = nombreInput.value.trim();
-    const telefono = telefonoInput.value.trim();
+    msg.textContent = 'Creando usuario...';
+
+    const rol       = rolSelect.value;
+    const email     = emailInput.value.trim();
+    const password  = passInput.value.trim();
+    const nombre    = nombreInput.value.trim();
+    const telefono  = telefonoInput.value.trim();
     const identidad = identidadInput.value.trim();
-    const casa = casaInput.value.trim();
-    const bloque = bloqueInput.value.trim();
+    const casa      = casaInput.value.trim();
+    const bloque    = bloqueInput.value.trim();
 
-    msg.textContent = "Creando usuario...";
-
-    if (!rol || !nombre || !telefono || (rol !== 'resident' && !identidad) || (rol === 'resident' && (!casa || !bloque))) {
-      msg.textContent = "Complete todos los campos obligatorios según el rol.";
+    // Validaciones
+    if (!rol || !email || !password) {
+      msg.textContent = 'Seleccione rol, email y contraseña.';
+      return;
+    }
+    if ((rol === 'guard' || rol === 'guard_admin') &&
+        (!nombre || !telefono || !identidad)) {
+      msg.textContent = 'Complete nombre, teléfono e identidad.';
+      return;
+    }
+    if (rol === 'resident' && (!nombre || !telefono || !casa || !bloque)) {
+      msg.textContent = 'Complete nombre, teléfono, casa y bloque.';
       return;
     }
 
@@ -266,15 +297,13 @@ function manejarCreacionUsuarios() {
         data.identidad = identidad;
       }
       await db.collection('usuarios').doc(user.uid).set(data);
-      msg.textContent = "Usuario creado con éxito.";
+      msg.textContent = 'Usuario creado con éxito.';
       form.reset();
-      rolSelect.value = '';
-      [nombreInput, telefonoInput, identidadInput, casaInput, bloqueInput].forEach(i => i.style.display = 'none');
     } catch (error) {
       console.error(error);
       msg.textContent = error.code === 'auth/email-already-in-use'
-        ? "El correo ya está registrado."
-        : "Error: " + error.message;
+        ? 'El correo ya está registrado.'
+        : 'Error: ' + error.message;
     }
   });
 }
