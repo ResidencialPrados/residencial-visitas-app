@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard Guardia Administrador</title>
-
   <link rel="stylesheet" href="css/styles-guard-admin.css">
 
   <!-- Firebase -->
@@ -26,28 +25,7 @@
 
   <div id="qr-reader" style="width:300px; margin-top:10px; display:none;"></div>
 
-  <h2 id="visitas-title">Visitas Pendientes (últimas 24h)</h2>
-  <table id="visitas-pendientes">
-    <thead>
-      <tr>
-        <th>Nombre Visitante</th>
-        <th>Marca</th>
-        <th>Color</th>
-        <th>Placa</th>
-        <th>Casa</th>
-        <th>Bloque</th>
-        <th>Teléfono</th>
-        <th>Guardia</th>
-        <th>Hora</th>
-        <th>Acción</th>
-      </tr>
-    </thead>
-    <tbody id="visitas-body">
-      <tr>
-        <td colspan="10" style="text-align:center;">Cargando...</td>
-      </tr>
-    </tbody>
-  </table>
+  <!-- ... sección Visitas Pendientes ... -->
 
   <h2>Registro de Usuario</h2>
   <form id="crearUsuarioForm">
@@ -74,10 +52,6 @@
         Nombre completo:
         <input type="text" id="nuevoNombre">
       </label>
-      <label id="labelTelefono" style="display:none;">
-        Teléfono:
-        <input type="text" id="nuevoTelefono">
-      </label>
       <label id="labelIdentidad" style="display:none;">
         Identidad:
         <input type="text" id="nuevoIdentidad">
@@ -90,31 +64,17 @@
         Bloque:
         <input type="text" id="nuevoBloque">
       </label>
+      <label id="labelTelefono" style="display:none;">
+        Teléfono:
+        <input type="text" id="nuevoTelefono">
+      </label>
     </div>
 
     <button type="submit" style="margin-top:10px;">Crear Usuario</button>
     <p id="crearUsuarioMsg"></p>
   </form>
 
-  <h2>Residentes y Pagos</h2>
-  <input type="text" id="buscarResidente" placeholder="Buscar residente por nombre, correo, casa, bloque o teléfono" style="width: 100%; max-width: 400px; margin-bottom: 10px;">
-
-  <table id="tablaResidentes">
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Correo</th>
-        <th>Teléfono</th>
-        <th>Casa</th>
-        <th>Bloque</th>
-        <th>Estado de Pago</th>
-        <th>Acción</th>
-      </tr>
-    </thead>
-    <tbody id="residents-body">
-      <tr><td colspan="7" style="text-align:center;">Cargando...</td></tr>
-    </tbody>
-  </table>
+  <!-- ... sección Residentes y Pagos ... -->
 
   <script src="js/main-guard-admin.js"></script>
 </body>
