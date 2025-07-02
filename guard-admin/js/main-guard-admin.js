@@ -11,7 +11,6 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Verificar autenticación
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(user => {
     if (!user) {
@@ -22,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Configurar dashboard
 function cargarDashboardAdmin(user) {
   document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
@@ -30,7 +28,6 @@ function cargarDashboardAdmin(user) {
   const qrDiv = document.getElementById('qr-reader');
   let qrScanner = null;
 
-  // Activar lector QR
   btnQR.addEventListener('click', () => {
     if (!qrScanner) {
       qrDiv.style.display = 'block';
@@ -58,10 +55,14 @@ function cargarDashboardAdmin(user) {
   manejarCreacionUsuarios();
 }
 
-// Mostrar visitas pendientes
+// Cargar visitas pendientes de las últimas 24 horas
 function cargarVisitasPendientes() {
   const tbody = document.getElementById('visitas-body');
+  const ahora = new Date();
+  const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
+
   db.collection('visits')
+    .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(hace24h))
     .where('status', '==', 'pendiente')
     .orderBy('createdAt', 'asc')
     .onSnapshot(snapshot => {
@@ -84,7 +85,7 @@ function cargarVisitasPendientes() {
     });
 }
 
-// Procesar visita al escanear QR o manual
+// Procesar visita
 async function procesarVisita(visitaId) {
   try {
     const ref = db.collection('visits').doc(visitaId);
@@ -101,7 +102,6 @@ async function procesarVisita(visitaId) {
     const marca = prompt("Marca del vehículo:");
     const color = prompt("Color del vehículo:");
     const placa = prompt("Placa del vehículo:");
-
     await ref.update({
       status: 'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
@@ -115,42 +115,63 @@ async function procesarVisita(visitaId) {
   }
 }
 
-// Mostrar residentes y registrar pagos
+// Cargar residentes con información completa y buscador
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
-  db.collection('usuarios').where('rol', '==', 'resident')
-    .onSnapshot(snapshot => {
-      tbody.innerHTML = '';
-      if (snapshot.empty) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay residentes registrados</td></tr>';
-      } else {
-        snapshot.forEach(doc => {
-          const r = doc.data();
+  const searchInput = document.getElementById('buscarResidente');
+
+  searchInput.addEventListener('input', () => {
+    const filtro = searchInput.value.toLowerCase();
+    mostrarResidentes(tbody, filtro);
+  });
+
+  mostrarResidentes(tbody, "");
+}
+
+function mostrarResidentes(tbody, filtro) {
+  db.collection('usuarios').where('rol', '==', 'resident').onSnapshot(snapshot => {
+    tbody.innerHTML = '';
+    if (snapshot.empty) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay residentes registrados</td></tr>';
+    } else {
+      snapshot.forEach(doc => {
+        const r = doc.data();
+        if (
+          r.nombre?.toLowerCase().includes(filtro) ||
+          r.correo?.toLowerCase().includes(filtro) ||
+          r.telefono?.toLowerCase().includes(filtro) ||
+          r.casa?.toLowerCase().includes(filtro) ||
+          r.bloque?.toLowerCase().includes(filtro)
+        ) {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${r.nombre || 'Sin nombre'}</td>
             <td>${r.correo || 'Sin correo'}</td>
+            <td>${r.telefono || 'Sin teléfono'}</td>
+            <td>${r.casa || 'Sin casa'}</td>
+            <td>${r.bloque || 'Sin bloque'}</td>
             <td>${r.estado_pago || 'Pendiente'}</td>
             <td><button onclick="registrarPago('${doc.id}')">Registrar Pago</button></td>
           `;
           tbody.appendChild(tr);
-        });
-      }
-    });
+        }
+      });
+    }
+  });
 }
 
-// Registrar pago de residente
+// Registrar pago
 async function registrarPago(id) {
   if (confirm("¿Registrar pago de este residente?")) {
     await db.collection('usuarios').doc(id).update({
       estado_pago: 'Pagado',
       fecha_pago: firebase.firestore.FieldValue.serverTimestamp()
     });
-    alert("Pago registrado correctamente.");
+    alert("Pago registrado.");
   }
 }
 
-// Crear usuarios desde panel
+// Crear usuarios
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
   const msg = document.getElementById('crearUsuarioMsg');
@@ -171,14 +192,18 @@ function manejarCreacionUsuarios() {
         correo: email,
         rol: rol,
         nombre: "",
+        telefono: "",
+        casa: "",
+        bloque: "",
+        estado_pago: "Pendiente",
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       });
-      msg.textContent = "Usuario creado correctamente.";
+      msg.textContent = "Usuario creado con éxito.";
       form.reset();
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/email-already-in-use') {
-        msg.textContent = "El correo ya está registrado. Si desea asignar rol, contactar administración.";
+        msg.textContent = "El correo ya está registrado. Si desea asignar rol, hable con soporte.";
       } else {
         msg.textContent = "Error al crear usuario: " + error.message;
       }
