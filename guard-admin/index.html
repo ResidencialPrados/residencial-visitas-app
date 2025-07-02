@@ -25,8 +25,31 @@
 
   <div id="qr-reader" style="width:300px; margin-top:10px; display:none;"></div>
 
-  <!-- ... sección Visitas Pendientes ... -->
+  <!-- Visitas Pendientes -->
+  <h2 id="visitas-title">Visitas Pendientes (últimas 24h)</h2>
+  <table id="visitas-pendientes">
+    <thead>
+      <tr>
+        <th>Nombre Visitante</th>
+        <th>Marca</th>
+        <th>Color</th>
+        <th>Placa</th>
+        <th>Casa</th>
+        <th>Bloque</th>
+        <th>Teléfono</th>
+        <th>Guardia</th>
+        <th>Hora</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="visitas-body">
+      <tr>
+        <td colspan="10" style="text-align:center;">Cargando...</td>
+      </tr>
+    </tbody>
+  </table>
 
+  <!-- Registro de Usuario -->
   <h2>Registro de Usuario</h2>
   <form id="crearUsuarioForm">
     <label>
@@ -48,6 +71,8 @@
         Contraseña:
         <input type="password" id="nuevoPassword" required>
       </label>
+
+      <!-- Campos Guardia -->
       <label id="labelNombre" style="display:none;">
         Nombre completo:
         <input type="text" id="nuevoNombre">
@@ -56,6 +81,8 @@
         Identidad:
         <input type="text" id="nuevoIdentidad">
       </label>
+
+      <!-- Campos Residente -->
       <label id="labelCasa" style="display:none;">
         Casa:
         <input type="text" id="nuevoCasa">
@@ -74,7 +101,30 @@
     <p id="crearUsuarioMsg"></p>
   </form>
 
-  <!-- ... sección Residentes y Pagos ... -->
+  <!-- Residentes y Pagos -->
+  <h2>Residentes y Pagos</h2>
+  <input type="text" id="buscarResidente"
+         placeholder="Buscar residente por nombre, correo, casa, bloque o teléfono"
+         style="width:100%; max-width:400px; margin-bottom:10px;">
+
+  <table id="tablaResidentes">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Correo</th>
+        <th>Teléfono</th>
+        <th>Casa</th>
+        <th>Bloque</th>
+        <th>Estado de Pago</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="residents-body">
+      <tr>
+        <td colspan="7" style="text-align:center;">Cargando...</td>
+      </tr>
+    </tbody>
+  </table>
 
   <script src="js/main-guard-admin.js"></script>
 </body>
