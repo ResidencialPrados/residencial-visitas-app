@@ -1,8 +1,8 @@
 {
   "name": "Visitas Residente",
   "short_name": "Residente",
-  "start_url": "/control-visitas/resident/index.html",
-  "scope": "/control-visitas/resident/",
+  "start_url": "/residencial-visitas-app/resident/index.html",
+  "scope": "/residencial-visitas-app/resident/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#00695c",
