@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Control de Acceso ‒ Residencial Los Prados</title>
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/styles-process.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Control de Acceso</h1>
+    <div id="info">
+      <p><strong>Visitante:</strong> <span id="visitorName">Cargando…</span></p>
+      <p><strong>Anunciante:</strong> <span id="residentName">Cargando…</span></p>
+      <p><strong>Casa / Bloque:</strong> <span id="houseBlock">Cargando…</span></p>
+    </div>
+
+    <form id="accessForm">
+      <label>
+        Marca del vehículo:
+        <input type="text" name="marca" required>
+      </label>
+      <label>
+        Color del vehículo:
+        <input type="text" name="color" required>
+      </label>
+      <label>
+        Placa:
+        <input type="text" name="placa" required>
+      </label>
+      <label>
+        Observaciones:
+        <textarea name="observaciones"></textarea>
+      </label>
+      <button type="submit">Dar Acceso</button>
+    </form>
+  </main>
+
+  <script>
+    // 1) Inicializa Firebase (la misma configuración que ya tienes)
+    firebase.initializeApp({
+      apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
+      authDomain: "residencial-qr.firebaseapp.com",
+      projectId: "residencial-qr",
+      storageBucket: "residencial-qr.appspot.com",
+      messagingSenderId: "21258599408",
+      appId: "1:21258599408:web:81a0a5b062aac6e6bdfb35"
+    });
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // 2) Leer el parámetro ?id= del enlace
+    const params = new URLSearchParams(window.location.search);
+    const visitId = params.get('id');
+    let visitRef;
+
+    if (!visitId) {
+      document.body.innerHTML = "<p>Error: ID de visita no proporcionado.</p>";
+      throw new Error("Falta el parámetro id");
+    }
+
+    // 3) Cargar datos de la visita
+    db.collection('visits').doc(visitId).get().then(doc => {
+      if (!doc.exists) {
+        alert("Visita no encontrada.");
+        return;
+      }
+      visitRef = doc.ref;
+      const d = doc.data();
+      document.getElementById('visitorName').textContent = d.visitorName;
+      document.getElementById('residentName').textContent = d.residentName;
+      document.getElementById('houseBlock').textContent = `${d.house} / ${d.block}`;
+    }).catch(err => {
+      console.error(err);
+      alert("Error al cargar datos de la visita.");
+    });
+
+    // 4) Al enviar el formulario, actualiza Firestore
+    document.getElementById('accessForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const f = e.target;
+      try {
+        await visitRef.update({
+          status: 'ingresado',
+          checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
+          guardId: auth.currentUser?.uid || null,
+          vehicle: {
+            marca: f.marca.value.trim(),
+            color: f.color.value.trim(),
+            placa: f.placa.value.trim()
+          },
+          observaciones: f.observaciones.value.trim()
+        });
+        alert("Acceso registrado correctamente.");
+        // aquí puedes redirigir al guardia a su dashboard si quieres
+      } catch (err) {
+        console.error(err);
+        alert("Error al registrar acceso.");
+      }
+    });
+  </script>
+</body>
+</html>
