@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Residencial Los Prados – Invitación</title>
+  <!-- Estilos básicos, puedes extraerlos luego a CSS -->
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      color: #004d40;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    header h1 {
+      margin-bottom: 5px;
+    }
+    #welcome {
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+    }
+    #qr-section {
+      display: inline-block;
+      padding: 10px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    canvas#qr {
+      border-radius: 8px;
+    }
+    p {
+      margin-top: 20px;
+    }
+  </style>
+
+  <!-- Librería para generar el QR -->
+  <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Residencial Los Prados</h1>
+    <p id="welcome">Cargando...</p>
+  </header>
+
+  <main>
+    <section id="qr-section">
+      <canvas id="qr"></canvas>
+    </section>
+    <p>Por favor, muestra este código al Personal de Seguridad al ingresar.</p>
+  </main>
+
+  <script>
+    // 1) Inicializar Firebase con TU configuración exacta:
+    firebase.initializeApp({
+      apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
+      authDomain: "residencial-qr.firebaseapp.com",
+      projectId: "residencial-qr",
+      storageBucket: "residencial-qr.appspot.com",
+      messagingSenderId: "21258599408",
+      appId: "1:21258599408:web:81a0a5b062aac6e6bdfb35"
+    });
+    const db = firebase.firestore();
+
+    // 2) Leer el parametro ?id= de la URL
+    const params = new URLSearchParams(window.location.search);
+    const visitId = params.get('id');
+    if (!visitId) {
+      document.body.innerHTML = '<p>Error: ID de visita no encontrado.</p>';
+      throw new Error('Falta id de visita');
+    }
+
+    // 3) Obtener datos de la visita y generar el QR
+    db.collection('visits').doc(visitId).get().then(doc => {
+      if (!doc.exists) {
+        document.getElementById('welcome').textContent = 'Visita inválida.';
+        return;
+      }
+      const data = doc.data();
+      document.getElementById('welcome').textContent = `Bienvenido, ${data.visitorName}`;
+
+      new QRious({
+        element: document.getElementById('qr'),
+        value: visitId,
+        size: 300
+      });
+    }).catch(err => {
+      console.error(err);
+      document.getElementById('welcome').textContent = 'Error cargando la visita.';
+    });
+  </script>
+</body>
+</html>
