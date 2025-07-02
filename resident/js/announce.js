@@ -1,6 +1,6 @@
 // js/announce.js
 
-// 1) Inicializar Firebase (idéntica a tus otros archivos)
+// ─── 1) Inicializar Firebase (igual en todos tus scripts) ──────────────────
 firebase.initializeApp({
   apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
   authDomain: "residencial-qr.firebaseapp.com",
@@ -11,54 +11,78 @@ firebase.initializeApp({
 });
 
 const auth = firebase.auth();
-const db = firebase.firestore();
+const db   = firebase.firestore();
 
-// 2) Asegurar que el residente esté logueado
-auth.onAuthStateChanged(user => {
-  if (!user) {
-    window.location.href = "index.html";
-  }
-});
+// ─── 2) Esperar a que cargue el DOM ─────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const form      = document.getElementById('announceForm');
+  const qrSection = document.getElementById('qrResult');
+  const qrCanvas  = document.getElementById('qrCanvas');
+  const shareBtn  = document.getElementById('shareBtn');
 
-// 3) Manejar envío del formulario
-document.getElementById('announceForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const visitorName = document.getElementById('visitorNameInput').value.trim();
-  const reference   = document.getElementById('referenceInput').value.trim();
-  const user        = auth.currentUser;
-
-  // Obtener datos del residente
-  const userDoc = await db.collection('usuarios').doc(user.uid).get();
-  const r = userDoc.data();
-
-  // 4) Crear la visita
-  const visitRef = await db.collection('visits').add({
-    visitorName,
-    reference: reference || '',
-    residentName: r.nombre,
-    residentPhone: r.telefono,
-    house: r.casa,
-    block: r.bloque,
-    residentId: user.uid,
-    status: 'pendiente',
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  // 2.1) Verificar sesión
+  auth.onAuthStateChanged(user => {
+    if (!user) {
+      window.location.href = "../index.html";
+    }
   });
 
-  // 5) Generar y mostrar el QR
-  const qrCanvas = document.getElementById('qrCanvas');
-  new QRious({
-    element: qrCanvas,
-    value: visitRef.id,
-    size: 300
-  });
-  document.getElementById('qrResult').style.display = 'block';
+  // ─── 3) Manejar envío del formulario ────────────────────────────────────────
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
 
-  // 6) Configurar botón de WhatsApp
-  document.getElementById('shareBtn').onclick = () => {
-    const link = `${window.location.origin}/visitor.html?id=${visitRef.id}`;
-    const text = encodeURIComponent(
-      `Favor ingresar al siguiente enlace y mostrarlo al Personal de seguridad de Residencial Los Prados:\n\n${link}`
-    );
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-  };
+    // 3.1) Leer valores
+    const visitorName = document.getElementById('visitorNameInput').value.trim();
+    const reference   = document.getElementById('referenceInput').value.trim();
+    if (!visitorName) {
+      alert("Por favor ingresa el nombre del visitante.");
+      return;
+    }
+
+    try {
+      const user    = auth.currentUser;
+      const uDoc    = await db.collection('usuarios').doc(user.uid).get();
+      const uData   = uDoc.data();
+
+      // 3.2) Crear visita en Firestore
+      const visitRef = await db.collection('visits').add({
+        visitorName,
+        reference: reference || '',
+        residentName : uData.nombre,
+        residentPhone: uData.telefono,
+        house        : uData.casa,
+        block        : uData.bloque,
+        residentId   : user.uid,
+        status       : 'pendiente',
+        createdAt    : firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // ─── 4) Generar y mostrar el QR ───────────────────────────────────────
+      new QRious({
+        element: qrCanvas,
+        value  : visitRef.id,
+        size   : 250
+      });
+      qrSection.style.display = 'block';
+
+      // ─── 5) Configurar el botón de WhatsApp ──────────────────────────────
+      // Necesitamos apuntar a: https://residencialprados.github.io/residencial-visitas-app/visitor.html?id=...
+      const baseUrl = window.location.origin + '/residencial-visitas-app';
+      const visitorLink = `${baseUrl}/visitor.html?id=${visitRef.id}`;
+      const whatsappText =
+        `Favor ingresar al siguiente enlace y mostrárselo al Personal de seguridad de Residencial Los Prados:\n\n${visitorLink}`;
+
+      shareBtn.onclick = () => {
+        const url = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+        window.open(url, '_blank');
+      };
+
+      // 3.3) Limpiar formulario
+      form.reset();
+
+    } catch (err) {
+      console.error("Error al anunciar visita:", err);
+      alert("Error al crear la visita. Revisa la consola para más detalles.");
+    }
+  });
 });
