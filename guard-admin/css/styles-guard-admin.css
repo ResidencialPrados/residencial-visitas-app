@@ -1,54 +1,104 @@
 body {
-  font-family: Arial, sans-serif;
-  padding: 15px;
-  background: #f9f9f9;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 20px;
+    color: #333;
 }
 
-h1, h2 {
-  color: #004d40;
+h1 {
+    text-align: center;
+    color: #004d40;
+    margin-bottom: 20px;
+}
+
+h2 {
+    color: #004d40;
+    margin-top: 30px;
+    margin-bottom: 10px;
 }
 
 button {
-  background-color: #004d40;
-  color: #fff;
-  border: none;
-  padding: 8px 14px;
-  margin: 5px 0;
-  cursor: pointer;
-  border-radius: 4px;
+    background-color: #004d40;
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    margin: 5px 0;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
 }
 
 button:hover {
-  background-color: #00695c;
+    background-color: #00695c;
 }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  background: #fff;
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
 }
 
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: center;
+table th, table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+    font-size: 14px;
 }
 
-th {
-  background-color: #004d40;
-  color: white;
+table th {
+    background-color: #e0f2f1;
+    color: #004d40;
 }
 
-form input, form select {
-  padding: 8px;
-  margin: 5px 0;
-  width: 95%;
-  max-width: 300px;
+input[type="email"],
+input[type="password"],
+select,
+input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    margin: 6px 0;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#qr-reader {
+    max-width: 300px;
+    margin: 10px auto;
+    border: 2px solid #004d40;
+    border-radius: 4px;
 }
 
 #crearUsuarioMsg {
-  color: green;
-  font-weight: bold;
+    margin-top: 8px;
+    font-weight: bold;
+    color: #004d40;
+    text-align: center;
 }
 
+#buscadorResidentes {
+    width: 100%;
+    padding: 8px;
+    margin: 10px 0;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+@media screen and (max-width: 600px) {
+    h1 {
+        font-size: 20px;
+    }
+    button {
+        width: 100%;
+        font-size: 16px;
+    }
+    table th, table td {
+        font-size: 12px;
+        padding: 6px;
+    }
+    #qr-reader {
+        width: 100%;
+    }
+}
