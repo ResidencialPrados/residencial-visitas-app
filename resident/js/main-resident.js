@@ -16,9 +16,7 @@ const db   = firebase.firestore();
 // ─── Cerrar sesión ────────────────────────────────────────────────────────────
 document.getElementById('logoutBtn')
   .addEventListener('click', () => {
-    auth.signOut().then(() => {
-      window.location.href = '../index.html';
-    });
+    auth.signOut().then(() => window.location.href = '../index.html');
   });
 
 // ─── Al cargar la página ──────────────────────────────────────────────────────
@@ -30,9 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Verificar estado de pago
-    const uid     = user.uid;
-    const uDoc    = await db.collection('usuarios').doc(uid).get();
-    const uData   = uDoc.data();
+    const uid   = user.uid;
+    const uDoc  = await db.collection('usuarios').doc(uid).get();
+    const uData = uDoc.data();
     if (uData.estado_pago !== 'Pagado') {
       document.getElementById('pagoPendiente').textContent =
         "⚠️ Su pago está vencido. Contacte administración.";
@@ -41,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Configurar botón de anunciar visita
     document.getElementById('anunciarVisitaBtn')
       .addEventListener('click', async () => {
-        // Pedir nombre y observaciones
+        // Pedir datos al residente
         const visitorName = prompt("Nombre completo del visitante:");
         if (!visitorName) return;
         const reference = prompt("Referencia u observación para el guardia:") || "";
@@ -59,17 +57,24 @@ document.addEventListener('DOMContentLoaded', () => {
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Generar enlace a visitor.html en tu subcarpeta
+        // Genera el QR en pantalla
+        const qrCanvas = document.getElementById('qr');
+        new QRious({
+          element: qrCanvas,
+          value: visitRef.id,
+          size: 250
+        });
+        document.getElementById('qrContainer').style.display = 'block';
+
+        // Prepara el enlace para WhatsApp
         const link = `${window.location.origin}/residencial-visitas-app/visitor.html?id=${visitRef.id}`;
-
-        // Componer texto para WhatsApp
         const whatsappText =
-          `Favor ingresar al siguiente enlace y mostrárselo al Personal de seguridad de Residencial Los Prados:` +
-          `\n\n${link}`;
+          `Favor ingresar al siguiente enlace y mostrárselo al Personal de seguridad de Residencial Los Prados:\n\n${link}`;
 
-        // Abrir WhatsApp
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
-        window.open(whatsappUrl, '_blank');
+        document.getElementById('compartirBtn').onclick = () => {
+          const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+          window.open(whatsappUrl, '_blank');
+        };
       });
 
     // Carga inicial de visitas
@@ -77,9 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ─── Función para cargar visitas de las últimas 24 h ────────────────────────────
+// ─── Cargar visitas de las últimas 24 h ────────────────────────────────────────
 function cargarVisitas(uid) {
-  const tbody = document.getElementById('visitasBody');
+  const tbody  = document.getElementById('visitasBody');
   const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   db.collection('visits')
@@ -93,10 +98,10 @@ function cargarVisitas(uid) {
           '<tr><td colspan="4" style="text-align:center;">Sin visitas registradas en las últimas 24 horas</td></tr>';
       } else {
         snapshot.forEach(doc => {
-          const v = doc.data();
+          const v     = doc.data();
           const fecha = v.createdAt?.toDate().toLocaleString() || '';
           const obs   = v.reference || '';
-          const tr = document.createElement('tr');
+          const tr    = document.createElement('tr');
           tr.innerHTML = `
             <td>${v.visitorName}</td>
             <td>${v.status}</td>
