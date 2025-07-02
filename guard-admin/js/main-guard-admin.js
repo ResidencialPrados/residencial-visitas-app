@@ -63,7 +63,7 @@ function manejarQR() {
   });
 }
 
-// 📌 Cargar visitas pendientes (últimas 24h)
+// 📌 Cargar visitas (pendientes e ingresadas) de las últimas 24h
 function cargarVisitasPendientes() {
   const tbody = document.getElementById('visitas-body');
   const ahora = new Date();
@@ -71,12 +71,11 @@ function cargarVisitasPendientes() {
 
   db.collection('visits')
     .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(hace24h))
-    .where('status', '==', 'pendiente')
-    .orderBy('createdAt', 'asc')
+    .orderBy('createdAt', 'desc')
     .onSnapshot(snapshot => {
       tbody.innerHTML = '';
       if (snapshot.empty) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay visitas pendientes</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay visitas recientes</td></tr>';
       } else {
         snapshot.forEach(doc => {
           const v = doc.data();
@@ -85,7 +84,7 @@ function cargarVisitasPendientes() {
             <td>${v.visitorName || 'Sin nombre'}</td>
             <td>${v.residentName || 'Sin residente'}</td>
             <td>${v.createdAt ? v.createdAt.toDate().toLocaleString() : 'Sin hora'}</td>
-            <td><button onclick="procesarVisita('${doc.id}')">Registrar</button></td>
+            <td>${v.status === 'pendiente' ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>` : 'Ingresado'}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -110,6 +109,7 @@ async function procesarVisita(visitaId) {
     const marca = prompt("Marca del vehículo:");
     const color = prompt("Color del vehículo:");
     const placa = prompt("Placa del vehículo:");
+
     await ref.update({
       status: 'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
@@ -120,22 +120,22 @@ async function procesarVisita(visitaId) {
         placa: placa || null
       }
     });
-    alert("Ingreso registrado con éxito.");
+    alert("Ingreso registrado correctamente.");
   } catch (e) {
     console.error(e);
     alert("Error al procesar la visita.");
   }
 }
 
-// 📌 Cargar residentes con buscador
+// 📌 Cargar residentes
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
-  const buscador = document.getElementById('buscadorResidentes');
+  const buscador = document.getElementById('buscarResidente');
 
   function renderizar(snapshot) {
     tbody.innerHTML = '';
     if (snapshot.empty) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay residentes registrados</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No hay residentes registrados</td></tr>';
     } else {
       snapshot.forEach(doc => {
         const r = doc.data();
@@ -193,38 +193,35 @@ async function registrarPago(id) {
   }
 }
 
-// 📌 Crear usuarios
+// 📌 Crear usuarios con rol únicamente (simplificado)
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
   const msg = document.getElementById('crearUsuarioMsg');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('nuevoEmail').value.trim();
-    const password = document.getElementById('nuevoPassword').value.trim();
     const rol = document.getElementById('rolUsuario').value;
-
     msg.textContent = "Creando usuario...";
 
     try {
-      const userCred = await auth.createUserWithEmailAndPassword(email, password);
+      const userCred = await auth.createUserWithEmailAndPassword(
+        `usuario${Date.now()}@residencialqr.com`,
+        Math.random().toString(36).slice(-8) + "Aa1"
+      );
       const uid = userCred.user.uid;
       await db.collection('usuarios').doc(uid).set({
         UID: uid,
-        correo: email,
+        correo: userCred.user.email,
         rol: rol,
         nombre: "",
-        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
+        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp(),
+        estado_pago: "Pendiente"
       });
-      msg.textContent = "Usuario creado con éxito.";
+      msg.textContent = `Usuario creado: ${userCred.user.email}. Solicita al residente completar sus datos.`;
       form.reset();
     } catch (error) {
       console.error(error);
-      if (error.code === 'auth/email-already-in-use') {
-        msg.textContent = "El correo ya está registrado. Contacta soporte para asignar rol.";
-      } else {
-        msg.textContent = "Error: " + error.message;
-      }
+      msg.textContent = "Error: " + error.message;
     }
   });
 }
