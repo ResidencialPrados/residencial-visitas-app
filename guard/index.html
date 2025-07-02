@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Dashboard Guardia</title>
-  <link rel="stylesheet" href="css/styles-guard-admin.css">
 
-  <!-- Firebase -->
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/styles-guard.css"/>
+
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -20,17 +22,15 @@
   <div class="button-group">
     <button id="logoutBtn">Cerrar sesión</button>
     <button id="activarQRBtn">Activar Lector QR</button>
-    <button id="toggleHistorialBtn">Ver Historial Completo</button>
   </div>
 
-  <div id="qr-reader" style="width:300px; margin-top:10px; display:none;"></div>
+  <div id="qr-reader" style="width:300px; margin-top:15px; display:none;"></div>
 
-  <!-- Visitas Pendientes -->
   <h2>Visitas Pendientes (últimas 24h)</h2>
   <table id="visitas-pendientes">
     <thead>
       <tr>
-        <th>Nombre Visitante</th>
+        <th>Visitante</th>
         <th>Marca</th>
         <th>Color</th>
         <th>Placa</th>
@@ -44,22 +44,25 @@
     </thead>
     <tbody id="visitas-body">
       <tr>
-        <td colspan="10" style="text-align:center;">Cargando...</td>
+        <td colspan="10" style="text-align:center;">Cargando visitas…</td>
       </tr>
     </tbody>
   </table>
 
-  <!-- Residentes y Pagos (solo lectura) -->
   <h2>Residentes y Pagos</h2>
-  <input type="text"
-         id="buscarResidente"
-         placeholder="Buscar residente por nombre, casa o bloque"
-         style="width:100%; max-width:400px; margin-bottom:10px;">
+  <input
+    type="text"
+    id="buscarResidente"
+    placeholder="Buscar residente por nombre, correo, casa, bloque o teléfono"
+    style="width:100%; max-width:400px; margin-bottom:10px;"
+  />
 
   <table id="tablaResidentes">
     <thead>
       <tr>
         <th>Nombre</th>
+        <th>Correo</th>
+        <th>Teléfono</th>
         <th>Casa</th>
         <th>Bloque</th>
         <th>Estado de Pago</th>
@@ -67,7 +70,7 @@
     </thead>
     <tbody id="residents-body">
       <tr>
-        <td colspan="4" style="text-align:center;">Cargando...</td>
+        <td colspan="6" style="text-align:center;">Cargando residentes…</td>
       </tr>
     </tbody>
   </table>
