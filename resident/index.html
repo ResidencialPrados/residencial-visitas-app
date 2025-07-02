@@ -13,9 +13,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-
-  <!-- QRious para generar QR -->
-  <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
 </head>
 <body>
   <h1>Dashboard Residente</h1>
@@ -24,13 +21,10 @@
 
   <div id="pagoPendiente" style="color: red; font-weight: bold; margin: 10px 0;"></div>
 
-  <button id="anunciarVisitaBtn">Anunciar Visita</button>
-
-  <div id="qrContainer" style="display: none; margin-top: 20px; text-align: center;">
-    <h3>QR generado para el visitante:</h3>
-    <canvas id="qr"></canvas><br>
-    <button id="compartirBtn">Compartir por WhatsApp</button>
-  </div>
+  <!-- Al hacer clic nos vamos a announce.html -->
+  <button id="anunciarVisitaBtn" onclick="window.location.href='announce.html'">
+    Anunciar Visita
+  </button>
 
   <h2>Visitas Anunciadas</h2>
   <table id="visitasTable">
