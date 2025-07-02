@@ -34,7 +34,7 @@ function inicializarDashboard(user) {
   manejarCreacionUsuarios();
 }
 
-// 📌 Manejo QR
+// 📌 Manejo QR (versión actualizada para redirigir a process.html)
 function manejarQR() {
   const btnQR = document.getElementById('activarQRBtn');
   const qrDiv = document.getElementById('qr-reader');
@@ -48,21 +48,22 @@ function manejarQR() {
       qrScanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
-        async (decodedText) => {
-          try {
-            await procesarVisita(decodedText.trim());
-          } catch (e) {
-            console.error(e);
-          } finally {
-            qrScanner.stop().then(() => {
-              qrDiv.innerHTML = "";
-              qrDiv.style.display = 'none';
-              qrScanner = null;
-            });
-          }
+        (decodedText) => {
+          const visitId = decodedText.trim();
+          // Detener scanner
+          qrScanner.stop().then(() => {
+            qrDiv.innerHTML = "";
+            qrDiv.style.display = 'none';
+            qrScanner = null;
+            // Redirigir al guardia a process.html con el ID
+            window.location.href = `${window.location.origin}/process.html?id=${visitId}`;
+          });
         },
         (err) => console.warn("QR Error:", err)
-      );
+      ).catch(err => {
+        console.error("Error al iniciar lector QR:", err);
+        alert("No se pudo activar el lector QR: " + err.message);
+      });
     } else {
       qrScanner.stop().then(() => {
         qrDiv.innerHTML = "";
@@ -104,7 +105,7 @@ function cargarVisitasPendientes() {
     });
 }
 
-// 📌 Procesar visita
+// 📌 Procesar visita (este método ya no se invoca vía QR, pero se mantiene para botón en tabla)
 async function procesarVisita(visitaId) {
   try {
     const ref = db.collection('visits').doc(visitaId);
