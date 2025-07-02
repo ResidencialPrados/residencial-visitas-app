@@ -193,23 +193,14 @@ function cargarResidentes() {
         <td>${r.casa || ''}</td>
         <td>${r.bloque || ''}</td>
         <td>${statusLabel}</td>
-        <td>
-          <button onclick="registrarPago('${r.id}')">
-            Registrar Pago
-          </button>
-        </td>
+        <td><button onclick="registrarPago('${r.id}')">Registrar Pago</button></td>
       `;
       tbody.appendChild(tr);
     });
   }
 
-  // Primera carga sin filtro
   fetchAndRender();
-
-  // Re-render al buscar
-  buscador.addEventListener('input', e => {
-    fetchAndRender(e.target.value);
-  });
+  buscador.addEventListener('input', e => fetchAndRender(e.target.value));
 }
 
 // 📌 Registrar pago
@@ -229,40 +220,40 @@ async function registrarPago(id) {
 
 // 📌 Manejar creación de usuarios con campos dinámicos
 function manejarCreacionUsuarios() {
-  const form = document.getElementById('crearUsuarioForm');
-  const rolSelect = document.getElementById('rolUsuario');
-  const emailInput = document.getElementById('nuevoEmail');
-  const passInput = document.getElementById('nuevoPassword');
-  const nombreInput = document.getElementById('nuevoNombre');
-  const telefonoInput = document.getElementById('nuevoTelefono');
-  const identidadInput = document.getElementById('nuevoIdentidad');
-  const casaInput = document.getElementById('nuevoCasa');
-  const bloqueInput = document.getElementById('nuevoBloque');
-  const msg = document.getElementById('crearUsuarioMsg');
+  const form        = document.getElementById('crearUsuarioForm');
+  const rolSelect   = document.getElementById('rolUsuario');
+  const camposExtra = document.getElementById('camposExtra');
+  const msg         = document.getElementById('crearUsuarioMsg');
 
-  // Ocultar todos los campos adicionales al inicio
-  [emailInput, passInput, nombreInput, telefonoInput, identidadInput, casaInput, bloqueInput]
-    .forEach(el => el.style.display = 'none');
+  const emailInput     = document.getElementById('nuevoEmail');
+  const passInput      = document.getElementById('nuevoPassword');
+  const labelNombre    = document.getElementById('labelNombre');
+  const labelIdentidad = document.getElementById('labelIdentidad');
+  const labelCasa      = document.getElementById('labelCasa');
+  const labelBloque    = document.getElementById('labelBloque');
+  const labelTelefono  = document.getElementById('labelTelefono');
+
+  form.reset();
+  camposExtra.style.display = 'none';
 
   rolSelect.addEventListener('change', () => {
-    // Al cambiar rol, ocultar todo y luego mostrar lo necesario
-    [emailInput, passInput, nombreInput, telefonoInput, identidadInput, casaInput, bloqueInput]
-      .forEach(el => el.style.display = 'none');
+    camposExtra.style.display = rolSelect.value ? 'block' : 'none';
     msg.textContent = '';
 
-    // Mostrar email y contraseña siempre
-    emailInput.style.display = 'block';
-    passInput.style.display = 'block';
+    // ocultar todos los campos específicos
+    [labelNombre, labelIdentidad, labelCasa, labelBloque, labelTelefono]
+      .forEach(el => el.style.display = 'none');
 
+    // mostrar según rol
     if (rolSelect.value === 'guard' || rolSelect.value === 'guard_admin') {
-      nombreInput.style.display = 'block';
-      telefonoInput.style.display = 'block';
-      identidadInput.style.display = 'block';
+      labelNombre.style.display    = 'block';
+      labelTelefono.style.display  = 'block';
+      labelIdentidad.style.display = 'block';
     } else if (rolSelect.value === 'resident') {
-      nombreInput.style.display = 'block';
-      telefonoInput.style.display = 'block';
-      casaInput.style.display = 'block';
-      bloqueInput.style.display = 'block';
+      labelNombre.style.display   = 'block';
+      labelTelefono.style.display = 'block';
+      labelCasa.style.display     = 'block';
+      labelBloque.style.display   = 'block';
     }
   });
 
@@ -270,14 +261,14 @@ function manejarCreacionUsuarios() {
     e.preventDefault();
     msg.textContent = 'Creando usuario...';
 
-    const rol = rolSelect.value;
-    const email = emailInput.value.trim();
-    const password = passInput.value.trim();
-    const nombre = nombreInput.value.trim();
-    const telefono = telefonoInput.value.trim();
-    const identidad = identidadInput.value.trim();
-    const casa = casaInput.value.trim();
-    const bloque = bloqueInput.value.trim();
+    const rol       = rolSelect.value;
+    const email     = emailInput.value.trim();
+    const password  = passInput.value.trim();
+    const nombre    = document.getElementById('nuevoNombre').value.trim();
+    const telefono  = document.getElementById('nuevoTelefono').value.trim();
+    const identidad = document.getElementById('nuevoIdentidad').value.trim();
+    const casa      = document.getElementById('nuevoCasa').value.trim();
+    const bloque    = document.getElementById('nuevoBloque').value.trim();
 
     if (!rol || !email || !password) {
       msg.textContent = 'Seleccione rol, email y contraseña.';
@@ -305,18 +296,16 @@ function manejarCreacionUsuarios() {
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       };
       if (rol === 'resident') {
-        data.casa = casa;
-        data.bloque = bloque;
+        data.casa        = casa;
+        data.bloque      = bloque;
         data.estado_pago = 'Pendiente';
       } else {
-        data.identidad = identidad;
+        data.identidad   = identidad;
       }
       await db.collection('usuarios').doc(user.uid).set(data);
       msg.textContent = 'Usuario creado con éxito.';
       form.reset();
-      // ocultar nuevamente campos
-      [emailInput, passInput, nombreInput, telefonoInput, identidadInput, casaInput, bloqueInput]
-        .forEach(el => el.style.display = 'none');
+      camposExtra.style.display = 'none';
       rolSelect.value = '';
     } catch (error) {
       console.error(error);
