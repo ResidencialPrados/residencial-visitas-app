@@ -2,57 +2,61 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard Guardia</title>
+  <link rel="stylesheet" href="css/styles-guard-admin.css">
 
-  <!-- PWA manifest -->
-  <link rel="manifest" href="manifest.json" />
-
-  <!-- Firebase SDK -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-  <!-- Biblioteca para escaneo QR -->
+  <!-- QR Scanner -->
   <script src="https://unpkg.com/html5-qrcode"></script>
-
-  <!-- Estilos -->
-  <link rel="stylesheet" href="css/styles-guard.css" />
 </head>
 <body>
-
   <h1>Dashboard Guardia</h1>
 
-  <!-- Botón para activar el lector QR -->
-  <button id="btn-activar-qr">Activar Lector QR</button>
-  <div id="qr-reader" style="width:300px; margin:15px auto; display:none;"></div>
+  <div class="button-group">
+    <button id="logoutBtn">Cerrar sesión</button>
+    <button id="activarQRBtn">Activar Lector QR</button>
+    <button id="toggleHistorialBtn">Ver Historial Completo</button>
+  </div>
 
-  <!-- Visitas pendientes (últimas 24h) -->
-  <h2>Visitas Pendientes (últimas 24 h)</h2>
+  <div id="qr-reader" style="width:300px; margin-top:10px; display:none;"></div>
+
+  <!-- Visitas Pendientes -->
+  <h2>Visitas Pendientes (últimas 24h)</h2>
   <table id="visitas-pendientes">
     <thead>
       <tr>
-        <th>Visitante</th>
-        <th>Residente</th>
+        <th>Nombre Visitante</th>
+        <th>Marca</th>
+        <th>Color</th>
+        <th>Placa</th>
+        <th>Casa</th>
+        <th>Bloque</th>
+        <th>Teléfono</th>
         <th>Guardia</th>
         <th>Hora</th>
         <th>Acción</th>
       </tr>
     </thead>
     <tbody id="visitas-body">
-      <tr><td colspan="5" style="text-align:center; color:gray;">Cargando...</td></tr>
+      <tr>
+        <td colspan="10" style="text-align:center;">Cargando...</td>
+      </tr>
     </tbody>
   </table>
 
-  <!-- Residentes y Pagos -->
+  <!-- Residentes y Pagos (solo lectura) -->
   <h2>Residentes y Pagos</h2>
-  <input
-    type="text"
-    id="buscarResidente"
-    placeholder="Buscar por nombre, casa o bloque"
-    style="width:100%; max-width:400px; padding:8px; margin:10px 0; border-radius:4px; border:1px solid #ccc;"
-  />
-  <table id="tabla-pagos">
+  <input type="text"
+         id="buscarResidente"
+         placeholder="Buscar residente por nombre, casa o bloque"
+         style="width:100%; max-width:400px; margin-bottom:10px;">
+
+  <table id="tablaResidentes">
     <thead>
       <tr>
         <th>Nombre</th>
@@ -61,16 +65,13 @@
         <th>Estado de Pago</th>
       </tr>
     </thead>
-    <tbody id="pagos-body">
-      <tr><td colspan="4" style="text-align:center; color:gray;">Cargando...</td></tr>
+    <tbody id="residents-body">
+      <tr>
+        <td colspan="4" style="text-align:center;">Cargando...</td>
+      </tr>
     </tbody>
   </table>
 
   <script src="js/main-guard.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js');
-    }
-  </script>
 </body>
 </html>
