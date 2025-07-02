@@ -21,22 +21,31 @@
   <div class="button-group">
     <button id="logoutBtn">Cerrar sesión</button>
     <button id="activarQRBtn">Activar Lector QR</button>
+    <button id="toggleHistorialBtn">Ver Historial Completo</button>
   </div>
 
   <div id="qr-reader" style="width:300px; margin-top:10px; display:none;"></div>
 
-  <h2>Visitas Pendientes (últimas 24h)</h2>
+  <h2 id="visitas-title">Visitas Pendientes (últimas 24h)</h2>
   <table id="visitas-pendientes">
     <thead>
       <tr>
         <th>Nombre Visitante</th>
-        <th>Residente</th>
+        <th>Marca</th>
+        <th>Color</th>
+        <th>Placa</th>
+        <th>Casa</th>
+        <th>Bloque</th>
+        <th>Teléfono</th>
+        <th>Guardia</th>
         <th>Hora</th>
         <th>Acción</th>
       </tr>
     </thead>
     <tbody id="visitas-body">
-      <tr><td colspan="4" style="text-align:center;">Cargando...</td></tr>
+      <tr>
+        <td colspan="10" style="text-align:center;">Cargando...</td>
+      </tr>
     </tbody>
   </table>
 
