@@ -98,7 +98,7 @@ function cargarVisitasPendientes() {
             <td>${v.house || ''}</td>
             <td>${v.block || ''}</td>
             <td>${v.residentPhone || ''}</td>
-            <td>${v.guardId || ''}</td>
+            <td>${v.guardName || v.guardId || ''}</td>
             <td>${v.createdAt ? v.createdAt.toDate().toLocaleString() : ''}</td>
             <td>
               ${v.status === 'pendiente'
@@ -127,14 +127,22 @@ async function procesarVisita(visitaId) {
       return;
     }
 
+    // Pedir datos
     const marca = prompt("Marca del vehículo:");
     const color = prompt("Color del vehículo:");
     const placa = prompt("Placa del vehículo:");
 
+    // Obtener nombre del guardia desde Firestore
+    const guardUid = auth.currentUser.uid;
+    const guardDoc = await db.collection('usuarios').doc(guardUid).get();
+    const guardName = guardDoc.exists ? guardDoc.data().nombre : guardUid;
+
+    // Actualizar visita con guardId y guardName
     await ref.update({
       status: 'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
-      guardId: auth.currentUser.uid,
+      guardId: guardUid,
+      guardName: guardName,
       vehicle: {
         marca: marca || '',
         color: color || '',
@@ -165,18 +173,17 @@ function cargarResidentes() {
     snapshot.docs.forEach(doc => {
       const r = doc.data();
       const text = filterText.toLowerCase();
-      const match = ['nombre', 'correo', 'telefono', 'casa', 'bloque'].some(field =>
-        (r[field] || '').toLowerCase().includes(text)
-      );
+      const match = ['nombre','correo','telefono','casa','bloque']
+        .some(f => (r[f]||'').toLowerCase().includes(text));
       if (!match) return;
 
-      if (r.estado_pago === 'Pagado') pagados.push({ id: doc.id, ...r });
+      if (r.estado_pago==='Pagado') pagados.push({ id: doc.id, ...r });
       else pendientes.push({ id: doc.id, ...r });
     });
 
     tbody.innerHTML = '';
     const todos = pendientes.concat(pagados);
-    if (todos.length === 0) {
+    if (todos.length===0) {
       tbody.innerHTML =
         '<tr><td colspan="7" style="text-align:center;">No hay residentes registrados</td></tr>';
       return;
@@ -184,15 +191,15 @@ function cargarResidentes() {
 
     todos.forEach(r => {
       const tr = document.createElement('tr');
-      if (r.estado_pago !== 'Pagado') tr.classList.add('pendiente');
-      const statusLabel = r.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
+      if (r.estado_pago!=='Pagado') tr.classList.add('pendiente');
+      const label = r.estado_pago==='Pagado'?'Pagado':'Pendiente';
       tr.innerHTML = `
-        <td>${r.nombre || ''}</td>
-        <td>${r.correo || ''}</td>
-        <td>${r.telefono || ''}</td>
-        <td>${r.casa || ''}</td>
-        <td>${r.bloque || ''}</td>
-        <td>${statusLabel}</td>
+        <td>${r.nombre||''}</td>
+        <td>${r.correo||''}</td>
+        <td>${r.telefono||''}</td>
+        <td>${r.casa||''}</td>
+        <td>${r.bloque||''}</td>
+        <td>${label}</td>
         <td><button onclick="registrarPago('${r.id}')">Registrar Pago</button></td>
       `;
       tbody.appendChild(tr);
@@ -240,26 +247,24 @@ function manejarCreacionUsuarios() {
     camposExtra.style.display = rolSelect.value ? 'block' : 'none';
     msg.textContent = '';
 
-    // ocultar todos los campos específicos
-    [labelNombre, labelIdentidad, labelCasa, labelBloque, labelTelefono]
-      .forEach(el => el.style.display = 'none');
+    [labelNombre,labelIdentidad,labelCasa,labelBloque,labelTelefono]
+      .forEach(el=>el.style.display='none');
 
-    // mostrar según rol
-    if (rolSelect.value === 'guard' || rolSelect.value === 'guard_admin') {
-      labelNombre.style.display    = 'block';
-      labelTelefono.style.display  = 'block';
-      labelIdentidad.style.display = 'block';
-    } else if (rolSelect.value === 'resident') {
-      labelNombre.style.display   = 'block';
-      labelTelefono.style.display = 'block';
-      labelCasa.style.display     = 'block';
-      labelBloque.style.display   = 'block';
+    if (rolSelect.value==='guard'||rolSelect.value==='guard_admin') {
+      labelNombre.style.display='block';
+      labelTelefono.style.display='block';
+      labelIdentidad.style.display='block';
+    } else if (rolSelect.value==='resident') {
+      labelNombre.style.display='block';
+      labelTelefono.style.display='block';
+      labelCasa.style.display='block';
+      labelBloque.style.display='block';
     }
   });
 
-  form.addEventListener('submit', async e => {
+  form.addEventListener('submit', async e=>{
     e.preventDefault();
-    msg.textContent = 'Creando usuario...';
+    msg.textContent='Creando usuario...';
 
     const rol       = rolSelect.value;
     const email     = emailInput.value.trim();
@@ -270,48 +275,46 @@ function manejarCreacionUsuarios() {
     const casa      = document.getElementById('nuevoCasa').value.trim();
     const bloque    = document.getElementById('nuevoBloque').value.trim();
 
-    if (!rol || !email || !password) {
-      msg.textContent = 'Seleccione rol, email y contraseña.';
+    if(!rol||!email||!password){
+      msg.textContent='Seleccione rol, email y contraseña.';
       return;
     }
-    if ((rol === 'guard' || rol === 'guard_admin') &&
-        (!nombre || !telefono || !identidad)) {
-      msg.textContent = 'Complete nombre, teléfono e identidad.';
+    if((rol==='guard'||rol==='guard_admin')&&(!nombre||!telefono||!identidad)){
+      msg.textContent='Complete nombre, teléfono e identidad.';
       return;
     }
-    if (rol === 'resident' &&
-        (!nombre || !telefono || !casa || !bloque)) {
-      msg.textContent = 'Complete nombre, teléfono, casa y bloque.';
+    if(rol==='resident'&&(!nombre||!telefono||!casa||!bloque)){
+      msg.textContent='Complete nombre, teléfono, casa y bloque.';
       return;
     }
 
     try {
-      const { user } = await auth.createUserWithEmailAndPassword(email, password);
+      const { user } = await auth.createUserWithEmailAndPassword(email,password);
       const data = {
-        UID: user.uid,
-        correo: email,
+        UID:user.uid,
+        correo:email,
         rol,
         nombre,
         telefono,
-        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
+        fecha_creacion:firebase.firestore.FieldValue.serverTimestamp()
       };
-      if (rol === 'resident') {
-        data.casa        = casa;
-        data.bloque      = bloque;
-        data.estado_pago = 'Pendiente';
+      if(rol==='resident'){
+        data.casa=casa;
+        data.bloque=bloque;
+        data.estado_pago='Pendiente';
       } else {
-        data.identidad   = identidad;
+        data.identidad=identidad;
       }
       await db.collection('usuarios').doc(user.uid).set(data);
-      msg.textContent = 'Usuario creado con éxito.';
+      msg.textContent='Usuario creado con éxito.';
       form.reset();
-      camposExtra.style.display = 'none';
-      rolSelect.value = '';
-    } catch (error) {
+      camposExtra.style.display='none';
+      rolSelect.value='';
+    } catch(error){
       console.error(error);
-      msg.textContent = error.code === 'auth/email-already-in-use'
-        ? 'El correo ya está registrado.'
-        : 'Error: ' + error.message;
+      msg.textContent = error.code==='auth/email-already-in-use'
+        ?'El correo ya está registrado.'
+        :'Error: '+error.message;
     }
   });
 }
