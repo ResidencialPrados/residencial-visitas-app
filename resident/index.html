@@ -5,10 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard Residente</title>
 
+  <!-- Hace que todas las rutas siguientes sean relativas a resident/ -->
+  <base href="/residencial-visitas-app/resident/">
+
+  <!-- PWA manifest -->
   <link rel="manifest" href="manifest.json" />
+
+  <!-- CSS y demás recursos a partir de resident/ -->
   <link rel="stylesheet" href="css/styles-resident.css">
 
-  <!-- Firebase -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -18,10 +24,9 @@
   <h1>Dashboard Residente</h1>
 
   <button id="logoutBtn">Cerrar sesión</button>
-
   <div id="pagoPendiente" style="color: red; font-weight: bold; margin: 10px 0;"></div>
 
-  <!-- Al hacer clic nos vamos a announce.html -->
+  <!-- Anunciar visita -->
   <button id="anunciarVisitaBtn" onclick="window.location.href='announce.html'">
     Anunciar Visita
   </button>
@@ -41,6 +46,7 @@
     </tbody>
   </table>
 
+  <!-- Tu script principal -->
   <script src="js/main-resident.js"></script>
 </body>
 </html>
