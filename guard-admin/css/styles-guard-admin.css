@@ -1,3 +1,5 @@
+/* guard-admin/css/styles-guard-admin.css */
+
 body {
     font-family: Arial, sans-serif;
     background-color: #f9f9f9;
@@ -84,6 +86,17 @@ input[type="text"] {
     margin: 10px 0;
     border-radius: 4px;
     border: 1px solid #ccc;
+}
+
+/* Resaltar filas con estado "Pendiente" */
+#tablaResidentes tr.pendiente td {
+    color: #c00;
+    background-color: #ffe6e6;
+}
+
+/* Negrita en la columna de Estado de Pago para pendientes */
+#tablaResidentes tr.pendiente td:nth-child(6) {
+    font-weight: bold;
 }
 
 @media screen and (max-width: 600px) {
