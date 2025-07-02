@@ -98,7 +98,7 @@ function cargarVisitasPendientes() {
             <td>${v.house || ''}</td>
             <td>${v.block || ''}</td>
             <td>${v.residentPhone || ''}</td>
-            <td>${v.guardName || v.guardId || ''}</td>
+            <td class="guard-cell">${v.guardName || ''}</td>
             <td>${v.createdAt ? v.createdAt.toDate().toLocaleString() : ''}</td>
             <td>
               ${v.status === 'pendiente'
@@ -107,6 +107,15 @@ function cargarVisitasPendientes() {
             </td>
           `;
           tbody.appendChild(tr);
+
+          // Si no tenemos guardName, obtenemos el nombre del guardia por su UID
+          if (!v.guardName && v.guardId) {
+            db.collection('usuarios').doc(v.guardId).get().then(userSnap => {
+              if (userSnap.exists) {
+                tr.querySelector('.guard-cell').textContent = userSnap.data().nombre;
+              }
+            });
+          }
         });
       }
     });
@@ -132,10 +141,10 @@ async function procesarVisita(visitaId) {
     const color = prompt("Color del vehículo:");
     const placa = prompt("Placa del vehículo:");
 
-    // Obtener nombre del guardia desde Firestore
+    // Obtener datos del guardia actual
     const guardUid = auth.currentUser.uid;
     const guardDoc = await db.collection('usuarios').doc(guardUid).get();
-    const guardName = guardDoc.exists ? guardDoc.data().nombre : guardUid;
+    const guardName = guardDoc.exists ? guardDoc.data().nombre : 'Desconocido';
 
     // Actualizar visita con guardId y guardName
     await ref.update({
@@ -251,14 +260,14 @@ function manejarCreacionUsuarios() {
       .forEach(el=>el.style.display='none');
 
     if (rolSelect.value==='guard'||rolSelect.value==='guard_admin') {
-      labelNombre.style.display='block';
-      labelTelefono.style.display='block';
-      labelIdentidad.style.display='block';
+      labelNombre.style.display   = 'block';
+      labelTelefono.style.display = 'block';
+      labelIdentidad.style.display= 'block';
     } else if (rolSelect.value==='resident') {
-      labelNombre.style.display='block';
-      labelTelefono.style.display='block';
-      labelCasa.style.display='block';
-      labelBloque.style.display='block';
+      labelNombre.style.display   = 'block';
+      labelTelefono.style.display = 'block';
+      labelCasa.style.display     = 'block';
+      labelBloque.style.display   = 'block';
     }
   });
 
