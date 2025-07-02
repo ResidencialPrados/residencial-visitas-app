@@ -14,7 +14,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
   <!-- Biblioteca para escaneo QR -->
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
   <!-- Estilos -->
   <link rel="stylesheet" href="css/styles-guard.css" />
@@ -23,16 +23,16 @@
 
   <h1>Dashboard Guardia</h1>
 
-  <!-- Botón lector QR -->
+  <!-- Lector QR -->
   <button id="btn-activar-qr">Activar Lector QR</button>
   <div id="qr-reader" style="width:300px; margin:15px auto; display:none;"></div>
 
-  <!-- Visitas Pendientes -->
-  <h2>Visitas Pendientes</h2>
+  <!-- Visitas de las últimas 24 h -->
+  <h2>Visitas (últimas 24 h)</h2>
   <table id="visitas-pendientes">
     <thead>
       <tr>
-        <th>Nombre Visitante</th>
+        <th>Visitante</th>
         <th>Residente</th>
         <th>Hora</th>
         <th>Acción</th>
@@ -43,14 +43,14 @@
     </tbody>
   </table>
 
-  <!-- Pagos de Residentes -->
+  <!-- Residentes y Pagos -->
   <h2>Residentes y Pagos</h2>
   <input
     type="text"
     id="buscarResidente"
     placeholder="Buscar por nombre, casa o bloque"
     style="width:100%;max-width:400px;padding:8px;margin:10px 0;border-radius:4px;border:1px solid #ccc;"
-  >
+  />
   <table id="tabla-pagos">
     <thead>
       <tr>
@@ -67,7 +67,7 @@
 
   <script src="js/main-guard.js"></script>
   <script>
-    // Registrar el Service Worker
+    // Registrar SW
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js');
     }
