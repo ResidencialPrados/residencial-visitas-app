@@ -1,6 +1,6 @@
 // reset-password.js
 
-// — Inicializar Firebase (mismas credenciales que tu app) —
+// Inicializa Firebase (mismas credenciales)
 firebase.initializeApp({
   apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
   authDomain: "residencial-qr.firebaseapp.com",
@@ -13,46 +13,41 @@ firebase.initializeApp({
 
 const auth = firebase.auth();
 const db   = firebase.firestore();
-
 const form    = document.getElementById('resetForm');
 const msgElem = document.getElementById('resetMsg');
 
 form.addEventListener('submit', async e => {
   e.preventDefault();
-  msgElem.textContent = '';
   msgElem.style.color = 'red';
+  msgElem.textContent = '';
 
   const identidad = document.getElementById('identidad').value.trim();
   const email     = document.getElementById('email').value.trim();
   const telefono  = document.getElementById('telefono').value.trim();
 
   if (!identidad || !email || !telefono) {
-    msgElem.textContent = 'Por favor completa todos los campos.';
+    msgElem.textContent = 'Completa todos los campos.';
     return;
   }
 
   try {
-    // 1) Buscar usuario por identidad + correo + teléfono
-    const query = await db
+    const q = await db
       .collection('usuarios')
-      .where('identidad', '==', identidad)
-      .where('correo',    '==', email)
-      .where('telefono',  '==', telefono)
+      .where('identidad','==',identidad)
+      .where('correo',   '==',email)
+      .where('telefono', '==',telefono)
       .limit(1)
       .get();
 
-    if (query.empty) {
-      msgElem.textContent = 'No encontramos ningún usuario con esos datos.';
+    if (q.empty) {
+      msgElem.textContent = 'Datos no coinciden con ningún usuario.';
       return;
     }
 
-    // 2) Enviar enlace de restablecimiento
     await auth.sendPasswordResetEmail(email);
-
     msgElem.style.color = 'green';
-    msgElem.textContent = 'Te enviamos un enlace a tu correo para restablecer la contraseña.';
+    msgElem.textContent = 'Enlace enviado a tu correo.';
   } catch (err) {
-    console.error(err);
     msgElem.textContent = err.message;
   }
 });
