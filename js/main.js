@@ -33,66 +33,60 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
   }
 
   try {
-    // 1) Buscamos al usuario por su número de identidad
-    const snapshot = await db
+    // 1) Buscar usuario por identidad
+    const snap = await db
       .collection('usuarios')
       .where('identidad', '==', identidad)
       .limit(1)
       .get();
 
-    if (snapshot.empty) {
-      errorElem.textContent = 'Usuario no encontrado.';
-      return;
+    if (snap.empty) {
+      throw { code: 'auth/user-not-found' };
     }
 
-    const userData = snapshot.docs[0].data();
-    const email    = userData.correo;
+    const { correo: email } = snap.docs[0].data();
     if (!email) {
-      errorElem.textContent = 'No se encontró correo asociado.';
-      return;
+      throw { code: 'auth/user-not-found' };
     }
 
-    // 2) Hacemos login con el email recuperado
+    // 2) Iniciar sesión con el email recuperado
     const cred = await auth.signInWithEmailAndPassword(email, password);
     const uid  = cred.user.uid;
 
-    // 3) Obtenemos rol y redirigimos
+    // 3) Obtener rol y redirigir
     const userDoc = await db.collection('usuarios').doc(uid).get();
     if (!userDoc.exists) {
-      errorElem.textContent = 'Usuario sin rol asignado. Contacta al admin.';
-      await auth.signOut();
-      return;
+      throw { code: 'auth/no-role' };
     }
 
     const rol = userDoc.data().rol;
-    switch (rol) {
-      case 'guard':
-        window.location.href = "./guard/";
-        break;
-      case 'guard_admin':
-        window.location.href = "./guard-admin/";
-        break;
-      case 'resident':
-        window.location.href = "./resident/";
-        break;
-      default:
-        errorElem.textContent = 'Rol desconocido. Contacta al admin.';
-        await auth.signOut();
+    if (rol === 'guard') {
+      location.href = "./guard/";
+    } else if (rol === 'guard_admin') {
+      location.href = "./guard-admin/";
+    } else if (rol === 'resident') {
+      location.href = "./resident/";
+    } else {
+      throw { code: 'auth/no-role' };
     }
 
   } catch (err) {
-    // Muestra un mensaje amable en caso de credenciales inválidas
-    if (err.code === 'auth/invalid-email' || err.code === 'auth/wrong-password') {
+    // Errores de credenciales inválidas
+    if (
+      err.code === 'auth/wrong-password' ||
+      err.code === 'auth/invalid-login-credentials' ||
+      err.code === 'auth/invalid-email' ||
+      err.code === 'auth/user-not-found'
+    ) {
       errorElem.textContent = 'Identidad o contraseña incorrectos.';
-    } else {
-      errorElem.textContent = err.message;
+    }
+    // Usuario sin rol
+    else if (err.code === 'auth/no-role') {
+      errorElem.textContent = 'Usuario sin rol asignado. Contactar administración.';
+    }
+    // Otros errores
+    else {
+      errorElem.textContent = err.message || 'Error inesperado.';
     }
   }
 });
-
-// — Enlace a “Olvidé mi contraseña” —
-// Asume que en tu HTML <a id="resetPasswordLink" href="reset-password.html">…
-document.getElementById('resetPasswordLink')
-  .addEventListener('click', e => {
-    // Dejamos que el <a> normal haga la navegación
-  });
