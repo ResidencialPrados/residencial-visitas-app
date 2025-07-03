@@ -1,6 +1,4 @@
-// js/main-guard-admin.js
-
-// ─── Inicializar Firebase ─────────────────────────────────────────────────────
+// Inicializar Firebase
 firebase.initializeApp({
   apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
   authDomain: "residencial-qr.firebaseapp.com",
@@ -9,16 +7,17 @@ firebase.initializeApp({
   messagingSenderId: "21258599408",
   appId: "1:21258599408:web:81a0a5b062aac6e6bdfb35"
 });
+
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-// ─── Cerrar sesión ─────────────────────────────────────────────────────────────
+// Cerrar sesión
 document.getElementById('logoutBtn')
   .addEventListener('click', () =>
     auth.signOut().then(() => window.location.href = '../index.html')
   );
 
-// ─── Verificar sesión al cargar ────────────────────────────────────────────────
+// Al cargar, verifica sesión
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(user => {
     if (!user) {
@@ -29,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ─── Inicializar Dashboard ─────────────────────────────────────────────────────
 function inicializarDashboard() {
   manejarQR();
   cargarVisitasPendientes();
@@ -37,7 +35,7 @@ function inicializarDashboard() {
   manejarCreacionUsuarios();
 }
 
-// ─── QR Scanner ────────────────────────────────────────────────────────────────
+// — QR Scanner —
 function manejarQR() {
   const btnQR = document.getElementById('activarQRBtn');
   const qrDiv = document.getElementById('qr-reader');
@@ -74,7 +72,7 @@ function manejarQR() {
   });
 }
 
-// ─── Cargar visitas últimas 24h ────────────────────────────────────────────────
+// — Cargar últimas 24h de visitas —
 function cargarVisitasPendientes() {
   const tbody = document.getElementById('visitas-body');
   const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -126,10 +124,10 @@ function cargarVisitasPendientes() {
     });
 }
 
-// ─── Procesar visita ──────────────────────────────────────────────────────────
+// — Procesar visita —
 async function procesarVisita(visitaId) {
   try {
-    const ref  = db.collection('visits').doc(visitaId);
+    const ref = db.collection('visits').doc(visitaId);
     const snap = await ref.get();
     if (!snap.exists) return alert("Visita no encontrada.");
     const v = snap.data();
@@ -160,7 +158,7 @@ async function procesarVisita(visitaId) {
   }
 }
 
-// ─── Cargar y filtrar residentes ─────────────────────────────────────────────
+// — Cargar y filtrar residentes —
 function cargarResidentes() {
   const tbody    = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
@@ -211,7 +209,7 @@ function cargarResidentes() {
   }
 }
 
-// ─── Registrar pago ───────────────────────────────────────────────────────────
+// — Registrar pago —
 async function registrarPago(id) {
   if (!confirm("¿Registrar pago de este residente?")) return;
   await db.collection('usuarios').doc(id).update({
@@ -221,7 +219,7 @@ async function registrarPago(id) {
   alert("Pago registrado con éxito.");
 }
 
-// ─── Crear usuarios dinámico ──────────────────────────────────────────────────
+// — Crear usuarios dinámico —
 function manejarCreacionUsuarios() {
   const form        = document.getElementById('crearUsuarioForm');
   const rolSelect   = document.getElementById('rolUsuario');
@@ -230,12 +228,11 @@ function manejarCreacionUsuarios() {
 
   const emailInput     = document.getElementById('nuevoEmail');
   const passInput      = document.getElementById('nuevoPassword');
-  const confirmInput   = document.getElementById('confirmPassword');
-  const nombreInput    = document.getElementById('nuevoNombre');
-  const identidadInput = document.getElementById('nuevoIdentidad');
-  const telefonoInput  = document.getElementById('nuevoTelefono');
-  const casaInput      = document.getElementById('nuevoCasa');
-  const bloqueInput    = document.getElementById('nuevoBloque');
+  const labelNombre    = document.getElementById('labelNombre');
+  const labelIdentidad = document.getElementById('labelIdentidad');
+  const labelTelefono  = document.getElementById('labelTelefono');
+  const labelCasa      = document.getElementById('labelCasa');
+  const labelBloque    = document.getElementById('labelBloque');
 
   form.reset();
   camposExtra.style.display = 'none';
@@ -243,54 +240,60 @@ function manejarCreacionUsuarios() {
   rolSelect.addEventListener('change', () => {
     camposExtra.style.display = rolSelect.value ? 'block' : 'none';
     msg.textContent = '';
+
+    [labelNombre,labelIdentidad,labelTelefono,labelCasa,labelBloque]
+      .forEach(el => el.style.display = 'none');
+
+    if (rolSelect.value === 'guard' || rolSelect.value === 'guard_admin') {
+      labelNombre.style.display    = 'block';
+      labelIdentidad.style.display = 'block';
+      labelTelefono.style.display  = 'block';
+    }
+    else if (rolSelect.value === 'resident') {
+      labelNombre.style.display    = 'block';
+      labelIdentidad.style.display = 'block';
+      labelTelefono.style.display  = 'block';
+      labelCasa.style.display      = 'block';
+      labelBloque.style.display    = 'block';
+    }
   });
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    msg.style.color = 'red';
-    msg.textContent = '';
+    msg.textContent = 'Creando usuario…';
 
     const rol       = rolSelect.value;
     const email     = emailInput.value.trim();
-    const pass      = passInput.value;
-    const confirm   = confirmInput.value;
-    const nombre    = nombreInput.value.trim();
-    const identidad = identidadInput.value.trim();
-    const telefono  = telefonoInput.value.trim();
-    const casa      = casaInput.value.trim();
-    const bloque    = bloqueInput.value.trim();
+    const password  = passInput.value.trim();
+    const nombre    = document.getElementById('nuevoNombre').value.trim();
+    const identidad = document.getElementById('nuevoIdentidad').value.trim();
+    const telefono  = document.getElementById('nuevoTelefono').value.trim();
+    const casa      = document.getElementById('nuevoCasa').value.trim();
+    const bloque    = document.getElementById('nuevoBloque').value.trim();
 
     // Validaciones
-    if (!rol || !email || !pass || !confirm) {
-      msg.textContent = 'Todos los campos marcados (*) son obligatorios.';
+    if (!rol || !email || !password) {
+      msg.textContent = 'Seleccione rol, email y contraseña.';
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      msg.textContent = 'Ingrese un correo válido.';
+    if ((rol==='guard'||rol==='guard_admin') && (!nombre||!identidad||!telefono)) {
+      msg.textContent = 'Complete nombre, identidad y teléfono.';
       return;
     }
-    if (pass !== confirm) {
-      msg.textContent = 'Las contraseñas no coinciden.';
-      return;
-    }
-    if (!nombre || !identidad || !telefono) {
-      msg.textContent = 'Complete Nombre, Identidad y Teléfono.';
-      return;
-    }
-    if (rol === 'resident' && (!casa || !bloque)) {
-      msg.textContent = 'Complete Casa y Bloque para residentes.';
+    if (rol==='resident' && (!nombre||!identidad||!telefono||!casa||!bloque)) {
+      msg.textContent = 'Complete todos los campos para residente.';
       return;
     }
 
     try {
-      const { user } = await auth.createUserWithEmailAndPassword(email, pass);
+      const { user } = await auth.createUserWithEmailAndPassword(email, password);
       const data = {
         UID: user.uid,
         correo: email,
         rol,
         nombre,
-        identidad,
         telefono,
+        identidad,
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       };
       if (rol === 'resident') {
@@ -299,10 +302,10 @@ function manejarCreacionUsuarios() {
         data.estado_pago = 'Pendiente';
       }
       await db.collection('usuarios').doc(user.uid).set(data);
-      msg.style.color = 'green';
       msg.textContent = 'Usuario creado con éxito.';
       form.reset();
       camposExtra.style.display = 'none';
+      rolSelect.value = '';
     } catch (error) {
       console.error(error);
       msg.textContent = (error.code === 'auth/email-already-in-use')
@@ -311,6 +314,3 @@ function manejarCreacionUsuarios() {
     }
   });
 }
-
-// ─── Llamar al dinámico de usuarios ────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', manejarCreacionUsuarios);
