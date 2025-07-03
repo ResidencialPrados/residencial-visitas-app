@@ -133,13 +133,13 @@ function cargarVisitasPendientes() {
     });
 }
 
-// — Procesar visita —
+// — Procesar visita —  
 async function procesarVisita(visitaId) {
   try {
-    const ref  = db.collection('visits').doc(visitaId);
-    const snap = await ref.get();
+    const ref      = db.collection('visits').doc(visitaId);
+    const snap     = await ref.get();
     if (!snap.exists) return alert("Visita no encontrada.");
-    const v = snap.data();
+    const v        = snap.data();
     if (v.status === 'ingresado') return alert("Ya fue ingresada.");
 
     // Pedir datos
@@ -152,12 +152,13 @@ async function procesarVisita(visitaId) {
     const guardSnap = await db.collection('usuarios').doc(guardUid).get();
     const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
 
+    // CORRECCIÓN: usar guardUid como guardId
     await ref.update({
-      status: 'ingresado',
+      status:      'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
-      guardId,
-      guardName,
-      vehicle: { marca, color, placa }
+      guardId:     guardUid,
+      guardName:   guardName,
+      vehicle:     { marca, color, placa }
     });
 
     alert("Ingreso registrado con éxito.");
@@ -244,13 +245,11 @@ function manejarCreacionUsuarios() {
   const casaInput     = document.getElementById('nuevoCasa');
   const bloqueInput   = document.getElementById('nuevoBloque');
 
-  // Estado inicial
   form.reset();
   camposExtra.style.display = 'none';
   msg.textContent = '';
   msg.style.color = 'red';
 
-  // Mostrar/ocultar campos según rol
   rolSelect.addEventListener('change', () => {
     camposExtra.style.display = rolSelect.value ? 'block' : 'none';
     msg.textContent = '';
@@ -270,7 +269,6 @@ function manejarCreacionUsuarios() {
     }
   });
 
-  // Validaciones y creación
   form.addEventListener('submit', async e => {
     e.preventDefault();
     msg.textContent = '';
@@ -286,7 +284,6 @@ function manejarCreacionUsuarios() {
     const casa      = casaInput.value.trim();
     const bloque    = bloqueInput.value.trim();
 
-    // Validaciones
     if (!rol) {
       msg.textContent = 'Selecciona un rol.';
       return;
@@ -312,7 +309,6 @@ function manejarCreacionUsuarios() {
       return;
     }
 
-    // Crear usuario en Auth y Firestore
     msg.textContent = 'Creando usuario…';
     try {
       const { user } = await auth.createUserWithEmailAndPassword(email, password);
