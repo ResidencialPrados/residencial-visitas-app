@@ -63,11 +63,15 @@
     <div id="camposExtra" style="display:none; margin-top:10px;">
       <label>
         Email:
-        <input type="email" id="nuevoEmail" required>
+        <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required>
       </label>
       <label>
         Contraseña:
-        <input type="password" id="nuevoPassword" required>
+        <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required>
+      </label>
+      <label>
+        Confirmar contraseña:
+        <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required>
       </label>
 
       <!-- Campos Comunes -->
