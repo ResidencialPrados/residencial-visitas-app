@@ -1,4 +1,6 @@
-// Inicializar Firebase
+// main-guard-admin.js
+
+// — Inicializar Firebase —
 firebase.initializeApp({
   apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
   authDomain: "residencial-qr.firebaseapp.com",
@@ -11,13 +13,13 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-// Cerrar sesión
+// — Cerrar sesión —
 document.getElementById('logoutBtn')
   .addEventListener('click', () =>
     auth.signOut().then(() => window.location.href = '../index.html')
   );
 
-// Al cargar, verifica sesión
+// — Al cargar, verifica sesión —
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(user => {
     if (!user) {
@@ -33,6 +35,12 @@ function inicializarDashboard() {
   cargarVisitasPendientes();
   cargarResidentes();
   manejarCreacionUsuarios();
+}
+
+// — Función auxiliar: valida formato de email —
+function validarEmail(email) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
 }
 
 // — QR Scanner —
@@ -74,7 +82,7 @@ function manejarQR() {
 
 // — Cargar últimas 24h de visitas —
 function cargarVisitasPendientes() {
-  const tbody = document.getElementById('visitas-body');
+  const tbody   = document.getElementById('visitas-body');
   const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   db.collection('visits')
@@ -90,9 +98,10 @@ function cargarVisitasPendientes() {
         </tr>`;
       } else {
         snapshot.forEach(doc => {
-          const v = doc.data();
+          const v    = doc.data();
           const hora = v.createdAt?.toDate().toLocaleString() || '';
-          const tr = document.createElement('tr');
+          const tr   = document.createElement('tr');
+
           tr.innerHTML = `
             <td>${v.visitorName || 'Sin nombre'}</td>
             <td>${v.vehicle?.marca || ''}</td>
@@ -127,7 +136,7 @@ function cargarVisitasPendientes() {
 // — Procesar visita —
 async function procesarVisita(visitaId) {
   try {
-    const ref = db.collection('visits').doc(visitaId);
+    const ref  = db.collection('visits').doc(visitaId);
     const snap = await ref.get();
     if (!snap.exists) return alert("Visita no encontrada.");
     const v = snap.data();
@@ -146,7 +155,7 @@ async function procesarVisita(visitaId) {
     await ref.update({
       status: 'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
-      guardId: guardUid,
+      guardId,
       guardName,
       vehicle: { marca, color, placa }
     });
@@ -176,11 +185,11 @@ function cargarResidentes() {
   function render(list, filter) {
     const txt = filter.trim().toLowerCase();
     const filtered = list.filter(r =>
-      (r.nombre||'').toLowerCase().includes(txt) ||
-      (r.correo||'').toLowerCase().includes(txt) ||
-      String(r.casa||'').includes(txt) ||
-      String(r.bloque||'').includes(txt) ||
-      (r.telefono||'').includes(txt)
+      (r.nombre   || '').toLowerCase().includes(txt) ||
+      (r.correo   || '').toLowerCase().includes(txt) ||
+      String(r.casa    || '').includes(txt) ||
+      String(r.bloque  || '').includes(txt) ||
+      (r.telefono || '').includes(txt)
     );
 
     if (!filtered.length) {
@@ -196,11 +205,11 @@ function cargarResidentes() {
       const tr = document.createElement('tr');
       if (estado === 'Pendiente') tr.classList.add('pendiente');
       tr.innerHTML = `
-        <td>${r.nombre||''}</td>
-        <td>${r.correo||''}</td>
-        <td>${r.telefono||''}</td>
-        <td>${r.casa||''}</td>
-        <td>${r.bloque||''}</td>
+        <td>${r.nombre   || ''}</td>
+        <td>${r.correo   || ''}</td>
+        <td>${r.telefono || ''}</td>
+        <td>${r.casa     || ''}</td>
+        <td>${r.bloque   || ''}</td>
         <td>${estado}</td>
         <td><button onclick="registrarPago('${r.id}')">Registrar Pago</button></td>
       `;
@@ -219,98 +228,122 @@ async function registrarPago(id) {
   alert("Pago registrado con éxito.");
 }
 
-// — Crear usuarios dinámico —
+// — Crear usuarios dinámico con validaciones robustas —
 function manejarCreacionUsuarios() {
-  const form        = document.getElementById('crearUsuarioForm');
-  const rolSelect   = document.getElementById('rolUsuario');
-  const camposExtra = document.getElementById('camposExtra');
-  const msg         = document.getElementById('crearUsuarioMsg');
+  const form         = document.getElementById('crearUsuarioForm');
+  const rolSelect    = document.getElementById('rolUsuario');
+  const camposExtra  = document.getElementById('camposExtra');
+  const msg          = document.getElementById('crearUsuarioMsg');
 
-  const emailInput     = document.getElementById('nuevoEmail');
-  const passInput      = document.getElementById('nuevoPassword');
-  const labelNombre    = document.getElementById('labelNombre');
-  const labelIdentidad = document.getElementById('labelIdentidad');
-  const labelTelefono  = document.getElementById('labelTelefono');
-  const labelCasa      = document.getElementById('labelCasa');
-  const labelBloque    = document.getElementById('labelBloque');
+  const emailInput    = document.getElementById('nuevoEmail');
+  const passInput     = document.getElementById('nuevoPassword');
+  const confirmInput  = document.getElementById('nuevoConfirmPassword');
+  const nombreInput   = document.getElementById('nuevoNombre');
+  const idInput       = document.getElementById('nuevoIdentidad');
+  const telInput      = document.getElementById('nuevoTelefono');
+  const casaInput     = document.getElementById('nuevoCasa');
+  const bloqueInput   = document.getElementById('nuevoBloque');
 
+  // Estado inicial
   form.reset();
   camposExtra.style.display = 'none';
+  msg.textContent = '';
+  msg.style.color = 'red';
 
+  // Mostrar/ocultar campos según rol
   rolSelect.addEventListener('change', () => {
     camposExtra.style.display = rolSelect.value ? 'block' : 'none';
     msg.textContent = '';
-
-    [labelNombre,labelIdentidad,labelTelefono,labelCasa,labelBloque]
-      .forEach(el => el.style.display = 'none');
+    [nombreInput, idInput, telInput, casaInput, bloqueInput]
+      .forEach(i => i.parentElement.style.display = 'none');
 
     if (rolSelect.value === 'guard' || rolSelect.value === 'guard_admin') {
-      labelNombre.style.display    = 'block';
-      labelIdentidad.style.display = 'block';
-      labelTelefono.style.display  = 'block';
-    }
-    else if (rolSelect.value === 'resident') {
-      labelNombre.style.display    = 'block';
-      labelIdentidad.style.display = 'block';
-      labelTelefono.style.display  = 'block';
-      labelCasa.style.display      = 'block';
-      labelBloque.style.display    = 'block';
+      nombreInput.parentElement.style.display = 'block';
+      idInput.parentElement.style.display     = 'block';
+      telInput.parentElement.style.display    = 'block';
+    } else if (rolSelect.value === 'resident') {
+      nombreInput.parentElement.style.display = 'block';
+      idInput.parentElement.style.display     = 'block';
+      telInput.parentElement.style.display    = 'block';
+      casaInput.parentElement.style.display   = 'block';
+      bloqueInput.parentElement.style.display = 'block';
     }
   });
 
+  // Validaciones y creación
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    msg.textContent = 'Creando usuario…';
+    msg.textContent = '';
+    msg.style.color = 'red';
 
     const rol       = rolSelect.value;
     const email     = emailInput.value.trim();
-    const password  = passInput.value.trim();
-    const nombre    = document.getElementById('nuevoNombre').value.trim();
-    const identidad = document.getElementById('nuevoIdentidad').value.trim();
-    const telefono  = document.getElementById('nuevoTelefono').value.trim();
-    const casa      = document.getElementById('nuevoCasa').value.trim();
-    const bloque    = document.getElementById('nuevoBloque').value.trim();
+    const password  = passInput.value;
+    const password2 = confirmInput.value;
+    const nombre    = nombreInput.value.trim();
+    const identidad = idInput.value.trim();
+    const telefono  = telInput.value.trim();
+    const casa      = casaInput.value.trim();
+    const bloque    = bloqueInput.value.trim();
 
     // Validaciones
-    if (!rol || !email || !password) {
-      msg.textContent = 'Seleccione rol, email y contraseña.';
+    if (!rol) {
+      msg.textContent = 'Selecciona un rol.';
       return;
     }
-    if ((rol==='guard'||rol==='guard_admin') && (!nombre||!identidad||!telefono)) {
-      msg.textContent = 'Complete nombre, identidad y teléfono.';
+    if (!email || !validarEmail(email)) {
+      msg.textContent = 'Ingresa un correo válido.';
       return;
     }
-    if (rol==='resident' && (!nombre||!identidad||!telefono||!casa||!bloque)) {
-      msg.textContent = 'Complete todos los campos para residente.';
+    if (!password || password.length < 6) {
+      msg.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+      return;
+    }
+    if (password !== password2) {
+      msg.textContent = 'Las contraseñas no coinciden.';
+      return;
+    }
+    if ((rol === 'guard' || rol === 'guard_admin') && (!nombre || !identidad || !telefono)) {
+      msg.textContent = 'Completa nombre, identidad y teléfono.';
+      return;
+    }
+    if (rol === 'resident' && (!nombre || !identidad || !telefono || !casa || !bloque)) {
+      msg.textContent = 'Completa todos los campos para residentes.';
       return;
     }
 
+    // Crear usuario en Auth y Firestore
+    msg.textContent = 'Creando usuario…';
     try {
       const { user } = await auth.createUserWithEmailAndPassword(email, password);
       const data = {
-        UID: user.uid,
-        correo: email,
+        UID:             user.uid,
+        correo:          email,
         rol,
         nombre,
-        telefono,
         identidad,
-        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
+        telefono,
+        fecha_creacion:  firebase.firestore.FieldValue.serverTimestamp()
       };
       if (rol === 'resident') {
-        data.casa = casa;
-        data.bloque = bloque;
+        data.casa        = casa;
+        data.bloque      = bloque;
         data.estado_pago = 'Pendiente';
       }
       await db.collection('usuarios').doc(user.uid).set(data);
+
+      msg.style.color = 'green';
       msg.textContent = 'Usuario creado con éxito.';
       form.reset();
       camposExtra.style.display = 'none';
-      rolSelect.value = '';
+      rolSelect.value           = '';
     } catch (error) {
       console.error(error);
-      msg.textContent = (error.code === 'auth/email-already-in-use')
-        ? 'El correo ya está registrado.'
-        : 'Error: ' + error.message;
+      if (error.code === 'auth/email-already-in-use') {
+        msg.textContent = 'El correo ya está registrado.';
+      } else {
+        msg.textContent = 'Error: ' + error.message;
+      }
     }
   });
 }
