@@ -17,6 +17,7 @@ const db   = firebase.firestore();
 // — Manejo de login por Identidad + Contraseña —
 document.getElementById('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
+
   const identidad = document.getElementById('identidad').value.trim();
   const password  = document.getElementById('password').value.trim();
   const errorElem = document.getElementById('error');
@@ -33,7 +34,7 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
   }
 
   try {
-    // 1) Buscar usuario por identidad
+    // 1) Traer perfil por identidad
     const snap = await db
       .collection('usuarios')
       .where('identidad', '==', identidad)
@@ -44,40 +45,40 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
       throw { code: 'auth/user-not-found' };
     }
 
-    // Extraemos email y rol directamente del perfil
-    const profile = snap.docs[0].data();
-    const email   = profile.correo;
-    const rol     = profile.rol;
+    // 2) Extraer email y rol del perfil encontrado
+    const perfil = snap.docs[0].data();
+    const email  = perfil.correo;
+    const rol    = perfil.rol;
 
     if (!email || !rol) {
       throw { code: 'auth/user-not-found' };
     }
 
-    // 2) Iniciar sesión con el email recuperado
+    // 3) Hacer login en Auth con el email recuperado
     await auth.signInWithEmailAndPassword(email, password);
 
-    // 3) Redirigir según el rol del perfil
+    // 4) Redirigir según rol
     if (rol === 'guard') {
-      location.href = "./guard/";
+      window.location.href = "guard/";
     } else if (rol === 'guard_admin') {
-      location.href = "./guard-admin/";
+      window.location.href = "guard-admin/";
     } else if (rol === 'resident') {
-      location.href = "./resident/";
+      window.location.href = "resident/";
     } else {
       throw { code: 'auth/no-role' };
     }
 
   } catch (err) {
-    // Errores de credenciales inválidas
+    // Credenciales inválidas
     if (
+      err.code === 'auth/user-not-found' ||
       err.code === 'auth/wrong-password' ||
-      err.code === 'auth/invalid-login-credentials' ||
       err.code === 'auth/invalid-email' ||
-      err.code === 'auth/user-not-found'
+      err.code === 'auth/invalid-login-credentials'
     ) {
       errorElem.textContent = 'Identidad o contraseña incorrectos.';
     }
-    // Usuario sin rol asignado
+    // Perfil sin rol válido
     else if (err.code === 'auth/no-role') {
       errorElem.textContent = 'Usuario sin rol asignado. Contactar administración.';
     }
