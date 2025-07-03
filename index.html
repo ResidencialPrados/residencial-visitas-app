@@ -29,17 +29,25 @@
       color: red;
       margin-top: 10px;
     }
+    #resetPasswordLink {
+      display: block;
+      margin-top: 10px;
+      color: blue;
+      text-decoration: underline;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <h1>Ingreso a Residencial</h1>
 
   <form id="loginForm">
-    <input type="email" id="email" placeholder="Correo" required /><br>
+    <input type="text" id="identidad" placeholder="Número de identidad" required /><br>
     <input type="password" id="password" placeholder="Contraseña" required /><br>
     <button type="submit">Ingresar</button>
   </form>
 
+  <a id="resetPasswordLink">¿Olvidaste tu contraseña?</a>
   <p id="error"></p>
 
   <script src="js/main.js"></script>
