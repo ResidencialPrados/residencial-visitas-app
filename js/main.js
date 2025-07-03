@@ -44,22 +44,19 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
       throw { code: 'auth/user-not-found' };
     }
 
-    const { correo: email } = snap.docs[0].data();
-    if (!email) {
+    // Extraemos email y rol directamente del perfil
+    const profile = snap.docs[0].data();
+    const email   = profile.correo;
+    const rol     = profile.rol;
+
+    if (!email || !rol) {
       throw { code: 'auth/user-not-found' };
     }
 
     // 2) Iniciar sesión con el email recuperado
-    const cred = await auth.signInWithEmailAndPassword(email, password);
-    const uid  = cred.user.uid;
+    await auth.signInWithEmailAndPassword(email, password);
 
-    // 3) Obtener rol y redirigir
-    const userDoc = await db.collection('usuarios').doc(uid).get();
-    if (!userDoc.exists) {
-      throw { code: 'auth/no-role' };
-    }
-
-    const rol = userDoc.data().rol;
+    // 3) Redirigir según el rol del perfil
     if (rol === 'guard') {
       location.href = "./guard/";
     } else if (rol === 'guard_admin') {
@@ -80,7 +77,7 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
     ) {
       errorElem.textContent = 'Identidad o contraseña incorrectos.';
     }
-    // Usuario sin rol
+    // Usuario sin rol asignado
     else if (err.code === 'auth/no-role') {
       errorElem.textContent = 'Usuario sin rol asignado. Contactar administración.';
     }
