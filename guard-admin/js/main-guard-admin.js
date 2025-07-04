@@ -120,7 +120,7 @@ function cargarVisitasPendientes() {
           `;
           tbody.appendChild(tr);
 
-          // Si no tiene guardName, lo buscamos
+          // Si no tiene guardName en el documento, lo rellenamos por seguridad
           if (!v.guardName && v.guardId) {
             db.collection('usuarios').doc(v.guardId).get().then(snap => {
               if (snap.exists) {
@@ -156,7 +156,7 @@ async function procesarVisita(visitaId) {
     const guardSnap = await db.collection('usuarios').doc(guardUid).get();
     const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
 
-    // Actualización: usar guardUid como guardId
+    // **CORRECCIÓN**: usar la variable guardUid en lugar de una que no existe
     await ref.update({
       status:      'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
@@ -188,7 +188,7 @@ function cargarResidentes() {
   buscador.addEventListener('input', e => render(cache, e.target.value));
 
   function render(list, filter) {
-    const txt = filter.trim().toLowerCase();
+    const txt      = filter.trim().toLowerCase();
     const filtered = list.filter(r =>
       (r.nombre   || '').toLowerCase().includes(txt) ||
       (r.correo   || '').toLowerCase().includes(txt) ||
@@ -207,7 +207,7 @@ function cargarResidentes() {
     tbody.innerHTML = '';
     filtered.forEach(r => {
       const estado = r.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
-      const tr = document.createElement('tr');
+      const tr     = document.createElement('tr');
       if (estado === 'Pendiente') tr.classList.add('pendiente');
       tr.innerHTML = `
         <td>${r.nombre   || ''}</td>
@@ -228,12 +228,12 @@ async function registrarPago(id) {
   if (!confirm("¿Registrar pago de este residente?")) return;
   await db.collection('usuarios').doc(id).update({
     estado_pago: 'Pagado',
-    fecha_pago: firebase.firestore.FieldValue.serverTimestamp()
+    fecha_pago:  firebase.firestore.FieldValue.serverTimestamp()
   });
   alert("Pago registrado con éxito.");
 }
 
-// — Crear usuarios dinámico con validaciones —
+// — Crear usuarios dinámico con validaciones robustas —
 function manejarCreacionUsuarios() {
   const form         = document.getElementById('crearUsuarioForm');
   const rolSelect    = document.getElementById('rolUsuario');
@@ -251,14 +251,15 @@ function manejarCreacionUsuarios() {
 
   form.reset();
   camposExtra.style.display = 'none';
-  msg.textContent = '';
-  msg.style.color = 'red';
+  msg.textContent           = '';
+  msg.style.color           = 'red';
 
   rolSelect.addEventListener('change', () => {
     camposExtra.style.display = rolSelect.value ? 'block' : 'none';
-    msg.textContent = '';
-    [nombreInput, idInput, telInput, casaInput, bloqueInput]
-      .forEach(i => i.parentElement.style.display = 'none');
+    msg.textContent           = '';
+    [nombreInput, idInput, telInput, casaInput, bloqueInput].forEach(i =>
+      i.parentElement.style.display = 'none'
+    );
 
     if (rolSelect.value === 'guard' || rolSelect.value === 'guard_admin') {
       nombreInput.parentElement.style.display = 'block';
@@ -317,13 +318,13 @@ function manejarCreacionUsuarios() {
     try {
       const { user } = await auth.createUserWithEmailAndPassword(email, password);
       const data = {
-        UID:             user.uid,
-        correo:          email,
+        UID:            user.uid,
+        correo:         email,
         rol,
         nombre,
         identidad,
         telefono,
-        fecha_creacion:  firebase.firestore.FieldValue.serverTimestamp()
+        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       };
       if (rol === 'resident') {
         data.casa        = casa;
@@ -332,8 +333,8 @@ function manejarCreacionUsuarios() {
       }
       await db.collection('usuarios').doc(user.uid).set(data);
 
-      msg.style.color = 'green';
-      msg.textContent = 'Usuario creado con éxito.';
+      msg.style.color   = 'green';
+      msg.textContent   = 'Usuario creado con éxito.';
       form.reset();
       camposExtra.style.display = 'none';
       rolSelect.value           = '';
