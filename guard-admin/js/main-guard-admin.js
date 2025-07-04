@@ -16,6 +16,11 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   auth.signOut().then(() => window.location.href = '../index.html');
 });
 
+// — Enlazar botón “Ver Historial” —
+document.getElementById('toggleHistorialBtn').addEventListener('click', () => {
+  window.location.href = 'historial.html';
+});
+
 // — Verificar sesión y rol al cargar —
 auth.onAuthStateChanged(async user => {
   if (!user) {
