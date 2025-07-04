@@ -11,114 +11,31 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// === Botones globales ===
-document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => location.href = '../index.html'));
-document.getElementById('toggleHistorialBtn').addEventListener('click', () => location.href = 'historial.html');
+// === Cerrar sesión ===
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  auth.signOut().then(() => window.location.href = '../index.html');
+});
 
-// === Variables modal pago ===
-const modalPago = document.getElementById('modalPago');
-const modalPagoNombre = document.getElementById('modalPagoNombre');
-const mesPagoSelect = document.getElementById('mesPago');
-const anioPagoSelect = document.getElementById('anioPago');
-const confirmarPagoBtn = document.getElementById('confirmarPagoBtn');
-const cancelarPagoBtn = document.getElementById('cancelarPagoBtn');
-
-let pagoResidenteId = null;
-let ultimoMesPago = null;
-
-// === Abrir modal de pago ===
-function abrirModalPago(residente) {
-  pagoResidenteId = residente.id;
-  modalPagoNombre.textContent = `Residente: ${residente.nombre || 'Sin nombre'}`;
-
-  const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-  mesPagoSelect.innerHTML = '';
-  meses.forEach((mes, i) => {
-    const opt = document.createElement('option');
-    opt.value = (i + 1).toString().padStart(2, '0');
-    opt.textContent = mes;
-    mesPagoSelect.appendChild(opt);
-  });
-
-  const anioActual = new Date().getFullYear();
-  anioPagoSelect.innerHTML = '';
-  for (let i = anioActual; i <= anioActual + 2; i++) {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = i;
-    anioPagoSelect.appendChild(opt);
-  }
-
-  if (residente.mes_pago) {
-    const [mes, anio] = residente.mes_pago.split("-");
-    mesPagoSelect.value = mes;
-    anioPagoSelect.value = anio;
-    ultimoMesPago = residente.mes_pago;
+// === Verificar sesión y cargar dashboard ===
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    window.location.href = "../index.html";
   } else {
-    mesPagoSelect.value = (new Date().getMonth() + 1).toString().padStart(2, '0');
-    anioPagoSelect.value = anioActual;
-    ultimoMesPago = null;
-  }
-
-  modalPago.classList.add('show');
-}
-
-// === Cerrar modal de pago ===
-cancelarPagoBtn.addEventListener('click', () => {
-  modalPago.classList.remove('show');
-  pagoResidenteId = null;
-  ultimoMesPago = null;
-});
-
-// === Confirmar y registrar pago ===
-confirmarPagoBtn.addEventListener('click', async () => {
-  if (!pagoResidenteId) return;
-  const mes = mesPagoSelect.value;
-  const anio = anioPagoSelect.value;
-  const fechaPago = `${mes}-${anio}`;
-
-  if (fechaPago === ultimoMesPago) {
-    alert("⚠️ Este mes ya está registrado.");
-    return;
-  }
-
-  try {
-    await db.collection('usuarios').doc(pagoResidenteId).update({
-      estado_pago: 'Pagado',
-      fecha_pago: firebase.firestore.FieldValue.serverTimestamp(),
-      mes_pago: fechaPago
-    });
-    alert(`✅ Pago registrado correctamente para ${fechaPago}.`);
-    modalPago.classList.remove('show');
-    pagoResidenteId = null;
-    ultimoMesPago = null;
-  } catch (e) {
-    console.error(e);
-    alert('❌ Error al registrar el pago.');
+    inicializarDashboard();
   }
 });
 
-// === Validar email ===
-const validarEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-// === Verificar sesión y rol ===
-auth.onAuthStateChanged(async user => {
-  if (!user) return location.href = '../index.html';
-  const data = (await db.collection('usuarios').doc(user.uid).get()).data();
-  if (!data || data.rol !== 'guard_admin') {
-    location.href = '../index.html';
-    return;
-  }
-  inicializarDashboard();
-});
-
-// === Inicializar Dashboard ===
 function inicializarDashboard() {
   manejarQR();
   cargarVisitasPendientes();
   cargarResidentes();
   manejarCreacionUsuarios();
+}
+
+// === Validar Email ===
+function validarEmail(email) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
 }
 
 // === QR Scanner ===
@@ -139,7 +56,7 @@ function manejarQR() {
             qrDiv.innerHTML = "";
             qrDiv.style.display = 'none';
             qrScanner = null;
-            location.href = `../process.html?id=${decodedText.trim()}`;
+            window.location.href = `../process.html?id=${decodedText.trim()}`;
           });
         },
         err => console.warn("QR Error:", err)
@@ -175,6 +92,7 @@ function cargarVisitasPendientes() {
         const v = doc.data();
         const hora = v.createdAt?.toDate().toLocaleString() || '';
         const tr = document.createElement('tr');
+
         tr.innerHTML = `
           <td>${v.visitorName || 'Sin nombre'}</td>
           <td>${v.vehicle?.marca || ''}</td>
@@ -185,41 +103,46 @@ function cargarVisitasPendientes() {
           <td>${v.residentPhone || ''}</td>
           <td>${v.guardName || ''}</td>
           <td>${hora}</td>
-          <td>${v.status === 'pendiente' ? '<button class="btn btn-primary">Registrar</button>' : 'Ingresado'}</td>
+          <td>${v.status === 'pendiente' ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>` : 'Ingresado'}</td>
         `;
-        if (v.status === 'pendiente') {
-          tr.querySelector('button').addEventListener('click', () => procesarVisita(doc.id));
-        }
         tbody.appendChild(tr);
       });
     });
 }
 
-// === Procesar visita ===
+// === Procesar Visita ===
 async function procesarVisita(id) {
-  const ref = db.collection('visits').doc(id);
-  const snap = await ref.get();
-  if (!snap.exists || snap.data().status === 'ingresado') {
-    alert('Visita no encontrada o ya ingresada.');
-    return;
-  }
-  const marca = prompt('Marca del vehículo:') || '';
-  const color = prompt('Color del vehículo:') || '';
-  const placa = prompt('Placa del vehículo:') || '';
-  const guardUid = auth.currentUser.uid;
-  const guardName = (await db.collection('usuarios').doc(guardUid).get()).data()?.nombre || 'Desconocido';
+  try {
+    const ref = db.collection('visits').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists || snap.data().status === 'ingresado') {
+      return alert("Visita no encontrada o ya ingresada.");
+    }
 
-  await ref.update({
-    status: 'ingresado',
-    checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
-    guardId: guardUid,
-    guardName,
-    vehicle: { marca, color, placa }
-  });
-  alert('Ingreso registrado con éxito.');
+    const marca = prompt("Marca del vehículo:") || '';
+    const color = prompt("Color del vehículo:") || '';
+    const placa = prompt("Placa del vehículo:") || '';
+
+    const guardUid = auth.currentUser.uid;
+    const guardSnap = await db.collection('usuarios').doc(guardUid).get();
+    const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
+
+    await ref.update({
+      status: 'ingresado',
+      checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
+      guardId: guardUid,
+      guardName,
+      vehicle: { marca, color, placa }
+    });
+
+    alert("Ingreso registrado con éxito.");
+  } catch (e) {
+    console.error(e);
+    alert("Error al procesar la visita.");
+  }
 }
 
-// === Cargar residentes ===
+// === Cargar Residentes ===
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
@@ -227,117 +150,137 @@ function cargarResidentes() {
 
   db.collection('usuarios').where('rol', '==', 'resident')
     .onSnapshot(snapshot => {
-      residentes = snapshot.docs.map(doc => {
-        const data = { id: doc.id, ...doc.data() };
-        const hoy = new Date();
-        if (data.mes_pago) {
-          const [mes, anio] = data.mes_pago.split("-");
-          const fechaPago = new Date(parseInt(anio), parseInt(mes) - 1);
-          if (fechaPago < hoy) {
-            db.collection('usuarios').doc(data.id).update({ estado_pago: 'Pendiente' });
-            data.estado_pago = 'Pendiente';
-          }
-        } else {
-          data.estado_pago = 'Pendiente';
-        }
-        return data;
-      });
+      residentes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       render(residentes, buscador.value);
     });
 
   buscador.addEventListener('input', e => render(residentes, e.target.value));
 
   function render(lista, filtro) {
-    const txt = filtro.trim().toLowerCase();
+    const filtroLower = filtro.trim().toLowerCase();
     const filtrados = lista.filter(r =>
-      (r.nombre || '').toLowerCase().includes(txt) ||
-      (r.correo || '').toLowerCase().includes(txt) ||
-      (r.casa || '').includes(txt) ||
-      (r.bloque || '').includes(txt) ||
-      (r.telefono || '').includes(txt)
+      (r.nombre || '').toLowerCase().includes(filtroLower) ||
+      (r.correo || '').toLowerCase().includes(filtroLower) ||
+      (r.casa || '').toString().includes(filtroLower) ||
+      (r.bloque || '').toString().includes(filtroLower) ||
+      (r.telefono || '').includes(filtroLower)
     );
-
-    filtrados.sort((a, b) => (a.estado_pago === 'Pendiente' ? -1 : 1));
 
     tbody.innerHTML = filtrados.length ? '' : `<tr><td colspan="7" style="text-align:center;">No hay residentes que coincidan</td></tr>`;
 
-    filtrados.forEach(r => {
-      const estado = r.estado_pago === 'Pendiente' ? 'Pendiente' : `Pagado hasta: ${r.mes_pago || 'N/A'}`;
+    filtrados.forEach(residente => {
+      const estado = residente.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
       const tr = document.createElement('tr');
-      if (r.estado_pago === 'Pendiente') tr.style.color = 'red';
-
+      if (estado === 'Pendiente') tr.classList.add('pendiente');
       tr.innerHTML = `
-        <td>${r.nombre || ''}</td>
-        <td>${r.correo || ''}</td>
-        <td>${r.telefono || ''}</td>
-        <td>${r.casa || ''}</td>
-        <td>${r.bloque || ''}</td>
+        <td>${residente.nombre || ''}</td>
+        <td>${residente.correo || ''}</td>
+        <td>${residente.telefono || ''}</td>
+        <td>${residente.casa || ''}</td>
+        <td>${residente.bloque || ''}</td>
         <td>${estado}</td>
-        <td><button class="btn btn-primary">Registrar Pago</button></td>
+        <td><button onclick="registrarPago('${residente.id}')">Registrar Pago</button></td>
       `;
-      tr.querySelector('button').addEventListener('click', () => abrirModalPago(r));
       tbody.appendChild(tr);
     });
   }
 }
 
-// === Crear usuarios ===
+// === Registrar Pago ===
+async function registrarPago(id) {
+  if (!confirm("¿Registrar pago de este residente?")) return;
+  try {
+    await db.collection('usuarios').doc(id).update({
+      estado_pago: 'Pagado',
+      fecha_pago: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    alert("Pago registrado con éxito.");
+  } catch (e) {
+    console.error(e);
+    alert("Error al registrar el pago.");
+  }
+}
+
+// === Crear Usuarios con campos dinámicos ===
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
-  const rol = document.getElementById('rolUsuario');
+  const rolSelect = document.getElementById('rolUsuario');
   const msg = document.getElementById('crearUsuarioMsg');
-  const email = document.getElementById('nuevoEmail');
-  const pass = document.getElementById('nuevoPassword');
-  const confirm = document.getElementById('nuevoConfirmPassword');
-  const nombre = document.getElementById('nuevoNombre');
-  const identidad = document.getElementById('nuevoIdentidad');
-  const telefono = document.getElementById('nuevoTelefono');
-  const casa = document.getElementById('nuevoCasa');
-  const bloque = document.getElementById('nuevoBloque');
+
+  const emailInput = document.getElementById('nuevoEmail');
+  const passInput = document.getElementById('nuevoPassword');
+  const confirmInput = document.getElementById('nuevoConfirmPassword');
+  const nombreInput = document.getElementById('nuevoNombre');
+  const idInput = document.getElementById('nuevoIdentidad');
+  const telInput = document.getElementById('nuevoTelefono');
+  const casaInput = document.getElementById('nuevoCasa');
+  const bloqueInput = document.getElementById('nuevoBloque');
+
+  const campoCasa = document.getElementById('campoCasa');
+  const campoBloque = document.getElementById('campoBloque');
+
+  rolSelect.addEventListener('change', () => {
+    if (rolSelect.value === 'resident') {
+      campoCasa.style.display = 'block';
+      campoBloque.style.display = 'block';
+    } else {
+      campoCasa.style.display = 'none';
+      campoBloque.style.display = 'none';
+    }
+  });
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
     msg.textContent = '';
     msg.style.color = 'red';
 
-    if (!rol.value) return msg.textContent = 'Selecciona un rol.';
-    if (!email.value || !validarEmail(email.value)) return msg.textContent = 'Correo inválido.';
-    if (!pass.value || pass.value.length < 6) return msg.textContent = 'Contraseña mínima de 6 caracteres.';
-    if (pass.value !== confirm.value) return msg.textContent = 'Las contraseñas no coinciden.';
-    if (!nombre.value || !identidad.value || !telefono.value) return msg.textContent = 'Completa nombre, identidad y teléfono.';
-    if (rol.value === 'resident' && (!casa.value || !bloque.value)) return msg.textContent = 'Completa casa y bloque para residente.';
+    const rol = rolSelect.value;
+    const email = emailInput.value.trim();
+    const password = passInput.value;
+    const confirmPassword = confirmInput.value;
+    const nombre = nombreInput.value.trim();
+    const identidad = idInput.value.trim();
+    const telefono = telInput.value.trim();
+    const casa = casaInput.value.trim();
+    const bloque = bloqueInput.value.trim();
 
-    msg.textContent = 'Creando usuario...';
+    if (!rol) return msg.textContent = 'Selecciona un rol.';
+    if (!email || !validarEmail(email)) return msg.textContent = 'Ingresa un correo válido.';
+    if (!password || password.length < 6) return msg.textContent = 'Contraseña mínima de 6 caracteres.';
+    if (password !== confirmPassword) return msg.textContent = 'Las contraseñas no coinciden.';
+    if (!nombre || !identidad || !telefono) return msg.textContent = 'Completa nombre, identidad y teléfono.';
+    if (rol === 'resident' && (!casa || !bloque)) return msg.textContent = 'Completa casa y bloque.';
+
+    msg.textContent = 'Creando usuario…';
+
     try {
-      const { user } = await auth.createUserWithEmailAndPassword(email.value.trim(), pass.value);
-      const now = new Date();
-      const mesPago = (now.getMonth() + 1).toString().padStart(2, '0') + '-' + now.getFullYear();
-
+      const { user } = await auth.createUserWithEmailAndPassword(email, password);
       const data = {
         UID: user.uid,
-        correo: email.value.trim(),
-        rol: rol.value,
-        nombre: nombre.value.trim(),
-        identidad: identidad.value.trim(),
-        telefono: telefono.value.trim(),
+        correo: email,
+        rol,
+        nombre,
+        identidad,
+        telefono,
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       };
 
-      if (rol.value === 'resident') {
-        data.casa = casa.value.trim();
-        data.bloque = bloque.value.trim();
-        data.estado_pago = 'Pagado';
-        data.mes_pago = mesPago;
-        data.fecha_pago = firebase.firestore.FieldValue.serverTimestamp();
+      if (rol === 'resident') {
+        data.casa = casa;
+        data.bloque = bloque;
+        data.estado_pago = 'Pendiente';
       }
 
       await db.collection('usuarios').doc(user.uid).set(data);
-      msg.style.color = 'green';
-      msg.textContent = '✅ Usuario creado correctamente.';
-      setTimeout(() => location.reload(), 1200);
-    } catch (e) {
-      console.error(e);
-      msg.textContent = e.code === 'auth/email-already-in-use' ? 'El correo ya está registrado.' : 'Error: ' + e.message;
+      alert('✅ Usuario creado con éxito.');
+      form.reset();
+      rolSelect.value = '';
+      campoCasa.style.display = 'none';
+      campoBloque.style.display = 'none';
+      msg.textContent = '';
+    } catch (error) {
+      console.error(error);
+      msg.textContent = error.code === 'auth/email-already-in-use' ? 'El correo ya está registrado.' : 'Error: ' + error.message;
     }
   });
 }
