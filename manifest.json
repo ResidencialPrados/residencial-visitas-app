@@ -1,0 +1,20 @@
+{
+  "name": "Residencial Los Prados",
+  "short_name": "Los Prados",
+  "start_url": "/residencial-visitas-app/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#004d40",
+  "icons": [
+    {
+      "src": "/residencial-visitas-app/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/residencial-visitas-app/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
