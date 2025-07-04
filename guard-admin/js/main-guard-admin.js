@@ -24,24 +24,23 @@ const confirmarPagoBtn = document.getElementById('confirmarPagoBtn');
 const cancelarPagoBtn = document.getElementById('cancelarPagoBtn');
 
 let pagoResidenteId = null;
+let ultimoMesPago = null;
 
 // === Abrir modal de pago ===
 function abrirModalPago(residente) {
   pagoResidenteId = residente.id;
   modalPagoNombre.textContent = `Residente: ${residente.nombre || 'Sin nombre'}`;
 
-  // Llenar select de meses
+  const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   mesPagoSelect.innerHTML = '';
-  const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio",
-    "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-  meses.forEach((mes, index) => {
+  meses.forEach((mes, i) => {
     const opt = document.createElement('option');
-    opt.value = (index + 1).toString().padStart(2, '0');
+    opt.value = (i + 1).toString().padStart(2, '0');
     opt.textContent = mes;
     mesPagoSelect.appendChild(opt);
   });
 
-  // Llenar select de años
   const anioActual = new Date().getFullYear();
   anioPagoSelect.innerHTML = '';
   for (let i = anioActual; i <= anioActual + 2; i++) {
@@ -51,6 +50,19 @@ function abrirModalPago(residente) {
     anioPagoSelect.appendChild(opt);
   }
 
+  if (residente.mes_pago) {
+    const [mes, anio] = residente.mes_pago.split("-");
+    const fecha = new Date(parseInt(anio), parseInt(mes) - 1);
+    fecha.setMonth(fecha.getMonth() + 1);
+    mesPagoSelect.value = (fecha.getMonth() + 1).toString().padStart(2, '0');
+    anioPagoSelect.value = fecha.getFullYear();
+    ultimoMesPago = `${mes.padStart(2, '0')}-${anio}`;
+  } else {
+    mesPagoSelect.value = (new Date().getMonth() + 1).toString().padStart(2, '0');
+    anioPagoSelect.value = anioActual;
+    ultimoMesPago = null;
+  }
+
   modalPago.classList.add('show');
 }
 
@@ -58,6 +70,7 @@ function abrirModalPago(residente) {
 cancelarPagoBtn.addEventListener('click', () => {
   modalPago.classList.remove('show');
   pagoResidenteId = null;
+  ultimoMesPago = null;
 });
 
 // === Confirmar y registrar pago ===
@@ -68,16 +81,21 @@ confirmarPagoBtn.addEventListener('click', async () => {
   const anio = anioPagoSelect.value;
   const fechaPago = `${mes}-${anio}`;
 
+  if (fechaPago === ultimoMesPago) {
+    alert("⚠️ Ya se ha registrado este mes previamente.");
+    return;
+  }
+
   try {
     await db.collection('usuarios').doc(pagoResidenteId).update({
       estado_pago: 'Pagado',
       fecha_pago: firebase.firestore.FieldValue.serverTimestamp(),
       mes_pago: fechaPago
     });
-
-    alert(`✅ Gracias por su pago.\nSu siguiente pago será el mes siguiente.`);
+    alert(`✅ Pago registrado correctamente para ${fechaPago}.`);
     modalPago.classList.remove('show');
     pagoResidenteId = null;
+    ultimoMesPago = null;
   } catch (e) {
     console.error(e);
     alert('❌ Error al registrar el pago.');
@@ -105,7 +123,7 @@ function inicializarDashboard() {
   manejarCreacionUsuarios();
 }
 
-// === Validador de email simple ===
+// === Validador de email ===
 const validarEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 // === QR Scanner ===
@@ -206,7 +224,7 @@ async function procesarVisita(id) {
   alert('Ingreso registrado con éxito.');
 }
 
-// === Cargar residentes ===
+// === Cargar residentes con control de pagos ===
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
@@ -233,9 +251,11 @@ function cargarResidentes() {
     tbody.innerHTML = filtrados.length ? '' : `<tr><td colspan="7" style="text-align:center;">No hay residentes que coincidan</td></tr>`;
 
     filtrados.forEach(residente => {
-      const estado = residente.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
+      const estado = residente.estado_pago === 'Pagado' && residente.mes_pago
+        ? `Pagado hasta: ${residente.mes_pago}`
+        : 'Pendiente';
       const tr = document.createElement('tr');
-      if (estado === 'Pendiente') tr.classList.add('pendiente');
+      if (estado.startsWith('Pendiente')) tr.classList.add('pendiente');
 
       tr.innerHTML = `
         <td>${residente.nombre || ''}</td>
