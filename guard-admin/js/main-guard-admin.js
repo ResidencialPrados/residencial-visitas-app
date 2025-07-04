@@ -11,17 +11,11 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// === Cerrar sesión ===
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  auth.signOut().then(() => window.location.href = '../index.html');
-});
+// === Botones globales ===
+document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => location.href = '../index.html'));
+document.getElementById('toggleHistorialBtn').addEventListener('click', () => location.href = 'historial.html');
 
-// === Enlazar botón “Ver Historial” ===
-document.getElementById('toggleHistorialBtn').addEventListener('click', () => {
-  window.location.href = 'historial.html';
-});
-
-// === Variables modal de pago ===
+// === Variables modal pago ===
 const modalPago = document.getElementById('modalPago');
 const modalPagoNombre = document.getElementById('modalPagoNombre');
 const mesPagoSelect = document.getElementById('mesPago');
@@ -30,15 +24,24 @@ const confirmarPagoBtn = document.getElementById('confirmarPagoBtn');
 const cancelarPagoBtn = document.getElementById('cancelarPagoBtn');
 
 let pagoResidenteId = null;
-let pagoResidenteNombre = null;
 
 // === Abrir modal de pago ===
 function abrirModalPago(residente) {
   pagoResidenteId = residente.id;
-  pagoResidenteNombre = residente.nombre || 'Sin nombre';
+  modalPagoNombre.textContent = `Residente: ${residente.nombre || 'Sin nombre'}`;
 
-  modalPagoNombre.textContent = `Residente: ${pagoResidenteNombre}`;
+  // Llenar select de meses
+  mesPagoSelect.innerHTML = '';
+  const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio",
+    "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  meses.forEach((mes, index) => {
+    const opt = document.createElement('option');
+    opt.value = (index + 1).toString().padStart(2, '0');
+    opt.textContent = mes;
+    mesPagoSelect.appendChild(opt);
+  });
 
+  // Llenar select de años
   const anioActual = new Date().getFullYear();
   anioPagoSelect.innerHTML = '';
   for (let i = anioActual; i <= anioActual + 2; i++) {
@@ -55,7 +58,6 @@ function abrirModalPago(residente) {
 cancelarPagoBtn.addEventListener('click', () => {
   modalPago.classList.remove('show');
   pagoResidenteId = null;
-  pagoResidenteNombre = null;
 });
 
 // === Confirmar y registrar pago ===
@@ -73,36 +75,25 @@ confirmarPagoBtn.addEventListener('click', async () => {
       mes_pago: fechaPago
     });
 
-    alert(`✅ Gracias por su pago.\nSu siguiente pago será el siguiente mes.`);
+    alert(`✅ Gracias por su pago.\nSu siguiente pago será el mes siguiente.`);
     modalPago.classList.remove('show');
     pagoResidenteId = null;
-    pagoResidenteNombre = null;
-  } catch (error) {
-    console.error(error);
+  } catch (e) {
+    console.error(e);
     alert('❌ Error al registrar el pago.');
   }
 });
 
 // === Verificar sesión y rol ===
 auth.onAuthStateChanged(async user => {
-  if (!user) {
-    window.location.href = "../index.html";
-    return;
-  }
-  const userDoc = await db.collection('usuarios').doc(user.uid).get();
-  const data = userDoc.data();
-
+  if (!user) return location.href = '../index.html';
+  const data = (await db.collection('usuarios').doc(user.uid).get()).data();
   if (!data || data.rol !== 'guard_admin') {
-    if (data?.rol === 'resident') {
-      window.location.href = "../resident/index.html";
-    } else if (data?.rol === 'guard') {
-      window.location.href = "../guard/index.html";
-    } else {
-      window.location.href = "../index.html";
-    }
+    if (data?.rol === 'resident') location.href = '../resident/index.html';
+    else if (data?.rol === 'guard') location.href = '../guard/index.html';
+    else location.href = '../index.html';
     return;
   }
-
   inicializarDashboard();
 });
 
@@ -114,10 +105,8 @@ function inicializarDashboard() {
   manejarCreacionUsuarios();
 }
 
-// === Validar email ===
-function validarEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+// === Validador de email simple ===
+const validarEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 // === QR Scanner ===
 function manejarQR() {
@@ -137,7 +126,7 @@ function manejarQR() {
             qrDiv.innerHTML = "";
             qrDiv.style.display = 'none';
             qrScanner = null;
-            window.location.href = `../process.html?id=${decodedText.trim()}`;
+            location.href = `../process.html?id=${decodedText.trim()}`;
           });
         },
         err => console.warn("QR Error:", err)
@@ -173,7 +162,6 @@ function cargarVisitasPendientes() {
         const v = doc.data();
         const hora = v.createdAt?.toDate().toLocaleString() || '';
         const tr = document.createElement('tr');
-
         tr.innerHTML = `
           <td>${v.visitorName || 'Sin nombre'}</td>
           <td>${v.vehicle?.marca || ''}</td>
@@ -184,19 +172,11 @@ function cargarVisitasPendientes() {
           <td>${v.residentPhone || ''}</td>
           <td>${v.guardName || ''}</td>
           <td>${hora}</td>
+          <td>${v.status === 'pendiente' ? '<button class="btn btn-primary">Registrar</button>' : 'Ingresado'}</td>
         `;
-
-        const tdAccion = document.createElement('td');
         if (v.status === 'pendiente') {
-          const btn = document.createElement('button');
-          btn.textContent = 'Registrar';
-          btn.className = 'btn btn-primary';
-          btn.addEventListener('click', () => procesarVisita(doc.id));
-          tdAccion.appendChild(btn);
-        } else {
-          tdAccion.textContent = 'Ingresado';
+          tr.querySelector('button').addEventListener('click', () => procesarVisita(doc.id));
         }
-        tr.appendChild(tdAccion);
         tbody.appendChild(tr);
       });
     });
@@ -214,8 +194,7 @@ async function procesarVisita(id) {
   const color = prompt('Color del vehículo:') || '';
   const placa = prompt('Placa del vehículo:') || '';
   const guardUid = auth.currentUser.uid;
-  const guardSnap = await db.collection('usuarios').doc(guardUid).get();
-  const guardName = guardSnap.data()?.nombre || 'Desconocido';
+  const guardName = (await db.collection('usuarios').doc(guardUid).get()).data()?.nombre || 'Desconocido';
 
   await ref.update({
     status: 'ingresado',
@@ -227,7 +206,7 @@ async function procesarVisita(id) {
   alert('Ingreso registrado con éxito.');
 }
 
-// === Cargar residentes y pagos ===
+// === Cargar residentes ===
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
@@ -251,8 +230,7 @@ function cargarResidentes() {
       (r.telefono || '').includes(filtroLower)
     );
 
-    tbody.innerHTML = filtrados.length ? '' :
-      `<tr><td colspan="7" style="text-align:center;">No hay residentes que coincidan</td></tr>`;
+    tbody.innerHTML = filtrados.length ? '' : `<tr><td colspan="7" style="text-align:center;">No hay residentes que coincidan</td></tr>`;
 
     filtrados.forEach(residente => {
       const estado = residente.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
@@ -266,16 +244,9 @@ function cargarResidentes() {
         <td>${residente.casa || ''}</td>
         <td>${residente.bloque || ''}</td>
         <td>${estado}</td>
+        <td><button class="btn btn-primary">Registrar Pago</button></td>
       `;
-
-      const tdAccion = document.createElement('td');
-      const btnPagar = document.createElement('button');
-      btnPagar.textContent = 'Registrar Pago';
-      btnPagar.className = 'btn btn-primary';
-      btnPagar.addEventListener('click', () => abrirModalPago(residente));
-      tdAccion.appendChild(btnPagar);
-
-      tr.appendChild(tdAccion);
+      tr.querySelector('button').addEventListener('click', () => abrirModalPago(residente));
       tbody.appendChild(tr);
     });
   }
@@ -298,12 +269,9 @@ function manejarCreacionUsuarios() {
 
   rol.addEventListener('change', () => {
     camposExtra.style.display = rol.value ? 'block' : 'none';
-    [nombre, identidad, telefono, casa, bloque].forEach(input => input.parentElement.style.display = 'none');
-    if (rol.value === 'guard' || rol.value === 'guard_admin') {
-      [nombre, identidad, telefono].forEach(input => input.parentElement.style.display = 'block');
-    } else if (rol.value === 'resident') {
-      [nombre, identidad, telefono, casa, bloque].forEach(input => input.parentElement.style.display = 'block');
-    }
+    [nombre, identidad, telefono, casa, bloque].forEach(i => i.parentElement.style.display = 'none');
+    if (rol.value === 'guard' || rol.value === 'guard_admin') [nombre, identidad, telefono].forEach(i => i.parentElement.style.display = 'block');
+    if (rol.value === 'resident') [nombre, identidad, telefono, casa, bloque].forEach(i => i.parentElement.style.display = 'block');
   });
 
   form.addEventListener('submit', async e => {
@@ -341,9 +309,9 @@ function manejarCreacionUsuarios() {
       form.reset();
       camposExtra.style.display = 'none';
       rol.value = '';
-    } catch (error) {
-      console.error(error);
-      msg.textContent = error.code === 'auth/email-already-in-use' ? 'Correo ya registrado.' : 'Error: ' + error.message;
+    } catch (e) {
+      console.error(e);
+      msg.textContent = e.code === 'auth/email-already-in-use' ? 'Correo ya registrado.' : 'Error: ' + e.message;
     }
   });
 }
