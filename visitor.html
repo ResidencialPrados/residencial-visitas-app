@@ -7,8 +7,9 @@
 
   <base href="/residencial-visitas-app/">
   <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#004d40" />
 
-  <!-- Usa el mismo theme de tu proyecto para coherencia visual -->
+  <!-- Theme CSS coherente -->
   <link rel="stylesheet" href="css/theme.css" />
 
   <!-- QRious -->
@@ -20,17 +21,17 @@
 </head>
 <body>
   <div class="container">
-    <section class="card" style="text-align: center;">
-      <h1 class="title">Residencial Los Prados</h1>
-      <p id="welcome" style="margin: 10px 0;">Cargando invitación…</p>
-      <p id="message" style="margin: 10px 0; color: #555;">
-        Gracias por visitarnos. ¡Te esperamos con gusto y te deseamos una visita agradable!
+    <section class="card" style="text-align: center; padding: 20px;">
+      <h1 class="title" style="margin-bottom: 10px;">Residencial Los Prados</h1>
+      <p id="welcome" style="font-size: 1.2rem; margin: 8px 0;">Cargando invitación…</p>
+      <p id="message" style="font-size: 1rem; color: #555; margin: 8px 0;">
+        Por favor, espera mientras preparamos tu invitación.
       </p>
 
       <div id="qr-section" style="display: none; margin-top: 20px;">
-        <canvas id="qr" width="250" height="250" style="margin: auto; border-radius: 12px;"></canvas>
+        <canvas id="qr" width="250" height="250" style="margin: auto; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"></canvas>
         <p style="margin-top: 15px; font-size: 0.95rem; color: #333;">
-          Por favor, muestra este código al personal de seguridad al ingresar.
+          Muestra este código al personal de seguridad al ingresar. ¡Te deseamos una visita agradable!
         </p>
       </div>
     </section>
@@ -48,7 +49,6 @@
     });
     const db = firebase.firestore();
 
-    // Referencias a elementos
     const params = new URLSearchParams(window.location.search);
     const visitId = params.get('id');
     const welcome = document.getElementById('welcome');
@@ -64,11 +64,12 @@
         .then(doc => {
           if (!doc.exists) {
             welcome.textContent = "Invitación no encontrada.";
-            message.textContent = "Por favor, contacta a tu anfitrión para confirmar tu visita.";
+            message.textContent = "Contacta a tu anfitrión para confirmar tu visita.";
             return;
           }
           const data = doc.data();
           const name = data.visitorName || "Invitado";
+
           welcome.textContent = `¡Bienvenido, ${name}!`;
           message.textContent = "Estamos felices de recibirte en Residencial Los Prados. ¡Disfruta tu visita!";
 
