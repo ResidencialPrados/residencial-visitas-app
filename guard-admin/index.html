@@ -5,94 +5,139 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard Guardia Administrador</title>
 
-  <!-- Tema global (verde residencial + responsive) -->
-  <link rel="stylesheet" href="../css/theme.css">
+  <!-- Primero tu theme global con color y responsividad -->
+  <link rel="stylesheet" href="css/theme.css">
 
-  <!-- Estilos específicos de guard-admin -->
+  <!-- Luego estilos específicos -->
   <link rel="stylesheet" href="css/styles-guard-admin.css">
 
-  <!-- Firebase SDK -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" defer></script>
-
   <!-- QR Scanner -->
   <script src="https://unpkg.com/html5-qrcode" defer></script>
 </head>
 <body>
-  <header>
-    <h1>Dashboard Guardia Administrador</h1>
-    <nav class="button-group">
-      <button id="logoutBtn">Cerrar sesión</button>
-      <button id="activarQRBtn">Activar Lector QR</button>
-      <button id="toggleHistorialBtn">Ver Historial Completo</button>
-    </nav>
-  </header>
+  <div class="container">
+    <header class="header">
+      <h1 class="title">Dashboard Guardia Administrador</h1>
+      <nav class="nav-buttons">
+        <button id="logoutBtn" class="btn">Cerrar sesión</button>
+        <button id="activarQRBtn" class="btn">Activar Lector QR</button>
+        <button id="toggleHistorialBtn" class="btn">Ver Historial Completo</button>
+      </nav>
+    </header>
 
-  <main>
-    <section id="qr-reader" aria-hidden="true"></section>
+    <main>
+      <section id="qr-reader" class="qr-section" aria-hidden="true"></section>
 
-    <section>
-      <h2 id="visitas-title">Visitas Pendientes (últimas 24 h)</h2>
-      <table id="visitas-pendientes">
-        <thead>
-          <tr>
-            <th>Nombre Visitante</th>
-            <th>Marca</th>
-            <th>Color</th>
-            <th>Placa</th>
-            <th>Casa</th>
-            <th>Bloque</th>
-            <th>Teléfono</th>
-            <th>Guardia</th>
-            <th>Hora</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody id="visitas-body">
-          <tr><td colspan="10" class="loading">Cargando…</td></tr>
-        </tbody>
-      </table>
-    </section>
+      <section class="card">
+        <h2>Visitas Pendientes (últimas 24 h)</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Nombre Visitante</th>
+              <th>Marca</th>
+              <th>Color</th>
+              <th>Placa</th>
+              <th>Casa</th>
+              <th>Bloque</th>
+              <th>Teléfono</th>
+              <th>Guardia</th>
+              <th>Hora</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="visitas-body">
+            <tr><td colspan="10" class="loading">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </section>
 
-    <section>
-      <h2>Registro de Usuario</h2>
-      <form id="crearUsuarioForm" class="card">
+      <section class="card">
+        <h2>Registro de Usuario</h2>
+        <form id="crearUsuarioForm" class="form-stack">
+          <div class="field">
+            <label for="rolUsuario">Rol:</label>
+            <select id="rolUsuario" required>
+              <option value="">Seleccione rol</option>
+              <option value="guard">Guardia Común</option>
+              <option value="guard_admin">Guardia Administrador</option>
+              <option value="resident">Residente</option>
+            </select>
+          </div>
+
+          <div id="camposExtra" class="form-stack hidden">
+            <div class="field">
+              <label for="nuevoEmail">Email:</label>
+              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required>
+            </div>
+            <div class="field">
+              <label for="nuevoPassword">Contraseña:</label>
+              <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required>
+            </div>
+            <div class="field">
+              <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
+              <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required>
+            </div>
+            <div class="field hidden" id="labelNombre">
+              <label for="nuevoNombre">Nombre completo:</label>
+              <input type="text" id="nuevoNombre">
+            </div>
+            <div class="field hidden" id="labelIdentidad">
+              <label for="nuevoIdentidad">Identidad:</label>
+              <input type="text" id="nuevoIdentidad">
+            </div>
+            <div class="field hidden" id="labelTelefono">
+              <label for="nuevoTelefono">Teléfono:</label>
+              <input type="text" id="nuevoTelefono">
+            </div>
+            <div class="field hidden" id="labelCasa">
+              <label for="nuevoCasa">Casa:</label>
+              <input type="text" id="nuevoCasa">
+            </div>
+            <div class="field hidden" id="labelBloque">
+              <label for="nuevoBloque">Bloque:</label>
+              <input type="text" id="nuevoBloque">
+            </div>
+          </div>
+
+          <button type="submit" class="btn-full">Crear Usuario</button>
+          <p id="crearUsuarioMsg" class="message"></p>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Residentes y Pagos</h2>
         <div class="field">
-          <label for="rolUsuario">Rol:</label>
-          <select id="rolUsuario" required>
-            <option value="">Seleccione rol</option>
-            <option value="guard">Guardia Común</option>
-            <option value="guard_admin">Guardia Administrador</option>
-            <option value="resident">Residente</option>
-          </select>
+          <input type="text" id="buscarResidente"
+                 placeholder="Buscar por nombre, correo, casa, bloque o teléfono">
         </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Teléfono</th>
+              <th>Casa</th>
+              <th>Bloque</th>
+              <th>Estado de Pago</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="residents-body">
+            <tr><td colspan="7" class="loading">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
 
-        <div id="camposExtra" class="extra-fields">
-          <div class="field">
-            <label for="nuevoEmail">Email:</label>
-            <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required>
-          </div>
-          <div class="field">
-            <label for="nuevoPassword">Contraseña:</label>
-            <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required>
-          </div>
-          <div class="field">
-            <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
-            <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required>
-          </div>
+    <footer class="footer">
+      <button class="back-btn btn" onclick="history.back()">← Volver</button>
+    </footer>
+  </div>
 
-          <div class="field" id="labelNombre">
-            <label for="nuevoNombre">Nombre completo:</label>
-            <input type="text" id="nuevoNombre">
-          </div>
-          <div class="field" id="labelIdentidad">
-            <label for="nuevoIdentidad">Identidad:</label>
-            <input type="text" id="nuevoIdentidad">
-          </div>
-          <div class="field" id="labelTelefono">
-            <label for="nuevoTelefono">Teléfono:</label>
-            <input type="text" id="nuevoTelefono">
-          </div>
-          <div class="field" id="labelCasa">
-            <label for="nuevoCasa">Casa:</label>
+  <script src="js/main-guard-admin.js" defer></script>
+</body>
+</html>
