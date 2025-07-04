@@ -1,12 +1,11 @@
 const CACHE_NAME = 'guard-admin-v1';
 const urlsToCache = [
-  '.',                // index.html
   'index.html',
   'css/theme.css',
   'css/styles-guard-admin.css',
   'js/main-guard-admin.js',
   'manifest.json',
-  // Agrega aquí otras rutas necesarias si tienes imágenes o íconos específicos
+  // Agrega aquí imágenes e íconos necesarios
 ];
 
 // Instala el service worker y cachea archivos necesarios
@@ -14,9 +13,10 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Archivos cacheados correctamente');
+        console.log('[SW] Archivos cacheados correctamente');
         return cache.addAll(urlsToCache);
       })
+      .catch(err => console.error('[SW] Error al cachear durante install', err))
   );
 });
 
@@ -27,7 +27,7 @@ self.addEventListener('activate', event => {
       Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
-            console.log('Borrando caché antiguo:', cacheName);
+            console.log('[SW] Borrando caché antiguo:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -36,17 +36,31 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Intercepta fetch para servir archivos cacheados cuando sea posible
+// Intercepta fetch para servir archivos cacheados y actualizarlos
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
-        // Retorna desde cache si está disponible
-        if (response) {
-          return response;
+      .then(cachedResponse => {
+        if (cachedResponse) {
+          // Actualiza en segundo plano
+          fetch(event.request)
+            .then(networkResponse => {
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put(event.request, networkResponse.clone());
+              });
+            })
+            .catch(err => console.warn('[SW] Sin conexión para actualizar:', err));
+          return cachedResponse; // Devuelve lo del cache
         }
-        // Sino, realiza la petición normalmente
-        return fetch(event.request);
+        // Si no está en caché, trae de red y lo cachea
+        return fetch(event.request)
+          .then(networkResponse => {
+            return caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, networkResponse.clone());
+              return networkResponse;
+            });
+          })
+          .catch(() => caches.match('index.html')); // Fallback si no hay red
       })
   );
 });
