@@ -27,8 +27,7 @@ auth.onAuthStateChanged(async user => {
     window.location.href = "../index.html";
     return;
   }
-  const uid = user.uid;
-  const userDoc = await db.collection('usuarios').doc(uid).get();
+  const userDoc = await db.collection('usuarios').doc(user.uid).get();
   const data = userDoc.data();
 
   if (!data || data.rol !== 'guard_admin') {
@@ -53,7 +52,7 @@ function inicializarDashboard() {
   manejarCreacionUsuarios();
 }
 
-// — Función auxiliar: valida email —
+// — Función auxiliar: validar email —
 function validarEmail(email) {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(email);
@@ -195,8 +194,8 @@ function cargarResidentes() {
 
   db.collection('usuarios')
     .where('rol', '==', 'resident')
-    .onSnapshot(snap => {
-      cache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    .onSnapshot(snapshot => {
+      cache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       render(cache, buscador.value);
     });
 
@@ -212,15 +211,9 @@ function cargarResidentes() {
       (r.telefono || '').includes(txt)
     );
 
-    if (!filtered.length) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="7" style="text-align:center;">No hay residentes que coincidan</td>
-        </tr>`;
-      return;
-    }
+    tbody.innerHTML = filtered.length ? '' :
+      `<tr><td colspan="7" style="text-align:center;">No hay residentes que coincidan</td></tr>`;
 
-    tbody.innerHTML = '';
     filtered.forEach(r => {
       const estado = r.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
       const tr = document.createElement('tr');
