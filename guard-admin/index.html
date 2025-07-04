@@ -74,8 +74,8 @@
           <div class="field"><label for="nuevoNombre">Nombre completo:</label><input type="text" id="nuevoNombre" required /></div>
           <div class="field"><label for="nuevoIdentidad">Identidad:</label><input type="text" id="nuevoIdentidad" required /></div>
           <div class="field"><label for="nuevoTelefono">Teléfono:</label><input type="text" id="nuevoTelefono" required /></div>
-          <div class="field"><label for="nuevoCasa">Casa:</label><input type="text" id="nuevoCasa" /></div>
-          <div class="field"><label for="nuevoBloque">Bloque:</label><input type="text" id="nuevoBloque" /></div>
+          <div class="field" id="fieldCasa" style="display: none;"><label for="nuevoCasa">Casa:</label><input type="text" id="nuevoCasa" /></div>
+          <div class="field" id="fieldBloque" style="display: none;"><label for="nuevoBloque">Bloque:</label><input type="text" id="nuevoBloque" /></div>
 
           <button type="submit" class="btn btn-primary btn-block">Crear Usuario</button>
           <p id="crearUsuarioMsg" class="message"></p>
@@ -123,10 +123,21 @@
     <script src="js/main-guard-admin.js" defer></script>
 
     <script>
-      // Mostrar el formulario de registro solo al seleccionar un rol
+      // Mostrar u ocultar campos de casa y bloque según el rol
       document.getElementById('rolUsuario').addEventListener('change', function() {
         const form = document.getElementById('crearUsuarioForm');
-        form.style.display = this.value ? 'block' : 'none';
+        const fieldCasa = document.getElementById('fieldCasa');
+        const fieldBloque = document.getElementById('fieldBloque');
+        const rol = this.value;
+
+        form.style.display = rol ? 'block' : 'none';
+        if (rol === 'resident') {
+          fieldCasa.style.display = 'block';
+          fieldBloque.style.display = 'block';
+        } else {
+          fieldCasa.style.display = 'none';
+          fieldBloque.style.display = 'none';
+        }
       });
 
       // Service Worker corregido
