@@ -19,28 +19,15 @@
     </div>
 
     <form id="accessForm" style="display:none; margin-top:20px;">
-      <label>
-        Marca del vehículo:
-        <input type="text" name="marca">
-      </label><br>
-      <label>
-        Color del vehículo:
-        <input type="text" name="color">
-      </label><br>
-      <label>
-        Placa:
-        <input type="text" name="placa">
-      </label><br>
-      <label>
-        Observaciones:
-        <textarea name="observaciones" rows="3"></textarea>
-      </label><br><br>
+      <label>Marca del vehículo:<input type="text" name="marca"></label><br>
+      <label>Color del vehículo:<input type="text" name="color"></label><br>
+      <label>Placa:<input type="text" name="placa"></label><br>
+      <label>Observaciones:<textarea name="observaciones" rows="3"></textarea></label><br><br>
       <button type="submit">Dar Acceso</button>
     </form>
   </main>
 
   <script>
-    // Inicializar Firebase
     firebase.initializeApp({
       apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
       authDomain: "residencial-qr.firebaseapp.com",
@@ -75,55 +62,64 @@
           return;
         }
 
-        visitRef = doc.ref;
         const d = doc.data();
+        visitRef = doc.ref;
+
         document.getElementById('visitorName').textContent = d.visitorName || '';
         document.getElementById('residentName').textContent = d.residentName || '';
         document.getElementById('houseBlock').textContent = `${d.house || ''} / ${d.block || ''}`;
 
-        // Mostrar el formulario
+        // Verificar si ya fue ingresado
+        if (d.status === 'ingresado') {
+          alert("Este código QR ya ha sido utilizado para el ingreso.");
+          window.location.href = '../index.html';
+          return;
+        }
+
+        // Verificar si han pasado más de 24 horas
+        const createdAt = d.createdAt?.toDate();
+        const ahora = new Date();
+        if (!createdAt || (ahora - createdAt) > 24 * 60 * 60 * 1000) {
+          alert("Este código QR ha expirado. Solicite a su anfitrión un nuevo código.");
+          window.location.href = '../index.html';
+          return;
+        }
+
+        // Mostrar formulario
         document.getElementById('accessForm').style.display = 'block';
 
-        // Configurar el formulario
         document.getElementById('accessForm').addEventListener('submit', async e => {
           e.preventDefault();
           const f = e.target;
 
-          try {
-            const guardUid = user.uid;
-            const guardSnap = await db.collection('usuarios').doc(guardUid).get();
-            const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
-            const rol = guardSnap.exists ? guardSnap.data().rol : '';
+          const guardUid = user.uid;
+          const guardSnap = await db.collection('usuarios').doc(guardUid).get();
+          const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
+          const rol = guardSnap.exists ? guardSnap.data().rol : '';
 
-            const marca = f.marca.value.trim();
-            const color = f.color.value.trim();
-            const placa = f.placa.value.trim();
-            const obs = f.observaciones.value.trim();
+          const marca = f.marca.value.trim();
+          const color = f.color.value.trim();
+          const placa = f.placa.value.trim();
+          const obs = f.observaciones.value.trim();
 
-            const updateData = {
-              status: 'ingresado',
-              checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
-              guardId: guardUid,
-              guardName: guardName,
-              vehicle: { marca, color, placa },
-              observaciones: obs
-            };
+          const updateData = {
+            status: 'ingresado',
+            checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
+            guardId: guardUid,
+            guardName: guardName,
+            vehicle: { marca, color, placa },
+            observaciones: obs
+          };
 
-            await visitRef.update(updateData);
-            alert("Acceso registrado correctamente.");
+          await visitRef.update(updateData);
+          alert("Acceso registrado correctamente.");
 
-            // Redirigir según rol
-            if (rol === 'guard_admin') {
-              window.location.href = '../guard-admin/index.html';
-            } else if (rol === 'guard') {
-              window.location.href = '../guard/index.html';
-            } else {
-              window.location.href = '../index.html';
-            }
-
-          } catch (error) {
-            console.error("Error al registrar acceso:", error);
-            alert("Error al registrar acceso.");
+          if (rol === 'guard_admin') {
+            window.location.href = '../guard-admin/index.html';
+          } else if (rol === 'guard') {
+            window.location.href = '../guard/index.html';
+          } else {
+            window.location.href = '../index.html';
           }
         });
 
