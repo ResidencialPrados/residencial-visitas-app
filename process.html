@@ -4,10 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Control de Acceso ‒ Residencial Los Prados</title>
+  <!-- Estilos -->
   <link rel="stylesheet" href="css/styles-process.css">
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <main>
@@ -17,75 +15,107 @@
       <p><strong>Anunciante:</strong> <span id="residentName">Cargando…</span></p>
       <p><strong>Casa / Bloque:</strong> <span id="houseBlock">Cargando…</span></p>
     </div>
+
+    <form id="accessForm">
+      <label>
+        Marca del vehículo:
+        <input type="text" name="marca">
+      </label>
+      <label>
+        Color del vehículo:
+        <input type="text" name="color">
+      </label>
+      <label>
+        Placa:
+        <input type="text" name="placa">
+      </label>
+      <label>
+        Observaciones:
+        <textarea name="observaciones"></textarea>
+      </label>
+      <button type="submit">Dar Acceso</button>
+    </form>
   </main>
 
+  <!-- Firebase + lógica -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
-    // 1) Configurar Firebase
+    // 1) Inicializa Firebase
     firebase.initializeApp({
-      apiKey:    "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
-      authDomain:"residencial-qr.firebaseapp.com",
+      apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
+      authDomain: "residencial-qr.firebaseapp.com",
       projectId: "residencial-qr",
-      storageBucket:"residencial-qr.appspot.com",
-      messagingSenderId:"21258599408",
-      appId:      "1:21258599408:web:81a0a5b062aac6e6bdfb35"
+      storageBucket: "residencial-qr.appspot.com",
+      messagingSenderId: "21258599408",
+      appId: "1:21258599408:web:81a0a5b062aac6e6bdfb35"
     });
     const auth = firebase.auth();
     const db   = firebase.firestore();
 
-    // 2) Leer parámetros de URL
+    // 2) Leer id de visita
     const params  = new URLSearchParams(window.location.search);
     const visitId = params.get('id');
-    const marca   = params.get('marca')         || '';
-    const color   = params.get('color')         || '';
-    const placa   = params.get('placa')         || '';
-    const obs     = params.get('observaciones') || '';
-
-    if (!visitId) {
-      document.body.innerHTML = "<p style='color:red;'>Error: Falta el parámetro <code>id</code> en la URL.</p>";
-      throw new Error("Falta parámetro id");
-    }
-
     let visitRef;
 
-    // 3) Cuando el usuario se autentique y la página cargue, procesar
-    auth.onAuthStateChanged(async user => {
-      if (!user) {
-        // No logueado → volver al login
-        return window.location.href = '../index.html';
-      }
+    if (!visitId) {
+      document.body.innerHTML = "<p style='color:red;'>Error: parámetro <code>id</code> faltante.</p>";
+      throw new Error("Falta el parámetro id");
+    }
 
-      // 3.1) Cargar documento de visita
-      const snap = await db.collection('visits').doc(visitId).get();
-      if (!snap.exists) {
+    // 3) Cargar datos de la visita
+    db.collection('visits').doc(visitId).get().then(doc => {
+      if (!doc.exists) {
         alert("Visita no encontrada.");
-        return window.location.href = '../index.html';
+        return;
       }
-      visitRef = snap.ref;
-      const d = snap.data();
-      document.getElementById('visitorName').textContent = d.visitorName || '';
+      visitRef = doc.ref;
+      const d = doc.data();
+      document.getElementById('visitorName').textContent  = d.visitorName || '';
       document.getElementById('residentName').textContent = d.residentName || '';
-      document.getElementById('houseBlock').textContent  = `${d.house||''} / ${d.block||''}`;
+      document.getElementById('houseBlock').textContent   = `${d.house||''} / ${d.block||''}`;
+    }).catch(err => {
+      console.error(err);
+      alert("Error al cargar datos de la visita.");
+    });
 
-      // 3.2) Si recibimos marca/color/placa por URL, actualizar automáticamente
-      if (marca || color || placa || obs) {
-        // Obtener datos del guardia
-        const guardUid  = user.uid;
-        const guardSnap = await db.collection('usuarios').doc(guardUid).get();
-        const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
+    // 4) Envío del formulario
+    document.getElementById('accessForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const f = e.target;
 
-        // Actualizar la visita
+      try {
+        // Obtener guardia actual y su nombre
+        const userSnap = await db.collection('usuarios')
+          .doc(auth.currentUser.uid)
+          .get();
+        const guardName = userSnap.exists
+          ? userSnap.data().nombre
+          : 'Desconocido';
+
+        // Leer los campos (pueden estar vacíos)
+        const marca = f.marca.value.trim();
+        const color = f.color.value.trim();
+        const placa = f.placa.value.trim();
+        const obs   = f.observaciones.value.trim();
+
+        // Actualizar Firestore
         await visitRef.update({
-          status:       'ingresado',
-          checkInTime:  firebase.firestore.FieldValue.serverTimestamp(),
-          guardId:      guardUid,
-          guardName:    guardName,
-          vehicle:      { marca, color, placa },
+          status:        'ingresado',
+          checkInTime:   firebase.firestore.FieldValue.serverTimestamp(),
+          guardId:       auth.currentUser.uid,
+          guardName:     guardName,
+          vehicle:       { marca, color, placa },
           observaciones: obs
         });
 
         alert("Acceso registrado correctamente.");
-        // Redirigir de vuelta al dashboard del guardia
+        // Redirige al dashboard si quieres:
         window.location.href = 'index.html';
+      } catch (err) {
+        console.error(err);
+        alert("Error al registrar acceso.");
       }
     });
   </script>
