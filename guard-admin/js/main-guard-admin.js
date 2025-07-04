@@ -52,11 +52,9 @@ function abrirModalPago(residente) {
 
   if (residente.mes_pago) {
     const [mes, anio] = residente.mes_pago.split("-");
-    const fecha = new Date(parseInt(anio), parseInt(mes) - 1);
-    fecha.setMonth(fecha.getMonth() + 1);
-    mesPagoSelect.value = (fecha.getMonth() + 1).toString().padStart(2, '0');
-    anioPagoSelect.value = fecha.getFullYear();
-    ultimoMesPago = `${mes.padStart(2, '0')}-${anio}`;
+    mesPagoSelect.value = mes;
+    anioPagoSelect.value = anio;
+    ultimoMesPago = residente.mes_pago;
   } else {
     mesPagoSelect.value = (new Date().getMonth() + 1).toString().padStart(2, '0');
     anioPagoSelect.value = anioActual;
@@ -76,7 +74,6 @@ cancelarPagoBtn.addEventListener('click', () => {
 // === Confirmar y registrar pago ===
 confirmarPagoBtn.addEventListener('click', async () => {
   if (!pagoResidenteId) return;
-
   const mes = mesPagoSelect.value.padStart(2, '0');
   const anio = anioPagoSelect.value;
   const fechaPago = `${mes}-${anio}`;
@@ -102,14 +99,15 @@ confirmarPagoBtn.addEventListener('click', async () => {
   }
 });
 
+// === Validar email ===
+const validarEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
 // === Verificar sesión y rol ===
 auth.onAuthStateChanged(async user => {
   if (!user) return location.href = '../index.html';
   const data = (await db.collection('usuarios').doc(user.uid).get()).data();
   if (!data || data.rol !== 'guard_admin') {
-    if (data?.rol === 'resident') location.href = '../resident/index.html';
-    else if (data?.rol === 'guard') location.href = '../guard/index.html';
-    else location.href = '../index.html';
+    location.href = '../index.html';
     return;
   }
   inicializarDashboard();
@@ -122,9 +120,6 @@ function inicializarDashboard() {
   cargarResidentes();
   manejarCreacionUsuarios();
 }
-
-// === Validador de email ===
-const validarEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 // === QR Scanner ===
 function manejarQR() {
@@ -224,7 +219,7 @@ async function procesarVisita(id) {
   alert('Ingreso registrado con éxito.');
 }
 
-// === Cargar residentes con control de pagos ===
+// === Cargar residentes con orden y control de pagos ===
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
@@ -232,47 +227,61 @@ function cargarResidentes() {
 
   db.collection('usuarios').where('rol', '==', 'resident')
     .onSnapshot(snapshot => {
-      residentes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      residentes = snapshot.docs.map(doc => {
+        const data = { id: doc.id, ...doc.data() };
+        const hoy = new Date();
+        if (data.mes_pago) {
+          const [mes, anio] = data.mes_pago.split("-");
+          const fechaPago = new Date(parseInt(anio), parseInt(mes) - 1);
+          if (fechaPago < hoy) {
+            db.collection('usuarios').doc(data.id).update({ estado_pago: 'Pendiente' });
+            data.estado_pago = 'Pendiente';
+          }
+        } else {
+          data.estado_pago = 'Pendiente';
+        }
+        return data;
+      });
       render(residentes, buscador.value);
     });
 
   buscador.addEventListener('input', e => render(residentes, e.target.value));
 
   function render(lista, filtro) {
-    const filtroLower = filtro.trim().toLowerCase();
+    const txt = filtro.trim().toLowerCase();
     const filtrados = lista.filter(r =>
-      (r.nombre || '').toLowerCase().includes(filtroLower) ||
-      (r.correo || '').toLowerCase().includes(filtroLower) ||
-      (r.casa || '').toString().includes(filtroLower) ||
-      (r.bloque || '').toString().includes(filtroLower) ||
-      (r.telefono || '').includes(filtroLower)
+      (r.nombre || '').toLowerCase().includes(txt) ||
+      (r.correo || '').toLowerCase().includes(txt) ||
+      (r.casa || '').includes(txt) ||
+      (r.bloque || '').includes(txt) ||
+      (r.telefono || '').includes(txt)
     );
+
+    filtrados.sort((a, b) => (a.estado_pago === 'Pendiente' ? -1 : 1));
 
     tbody.innerHTML = filtrados.length ? '' : `<tr><td colspan="7" style="text-align:center;">No hay residentes que coincidan</td></tr>`;
 
-    filtrados.forEach(residente => {
-      const estado = residente.estado_pago === 'Pagado' && residente.mes_pago
-        ? `Pagado hasta: ${residente.mes_pago}`
-        : 'Pendiente';
+    filtrados.forEach(r => {
+      const estado = r.estado_pago === 'Pendiente' ? 'Pendiente' : `Pagado hasta: ${r.mes_pago || 'N/A'}`;
       const tr = document.createElement('tr');
-      if (estado.startsWith('Pendiente')) tr.classList.add('pendiente');
+      if (r.estado_pago === 'Pendiente') tr.style.color = 'red';
 
       tr.innerHTML = `
-        <td>${residente.nombre || ''}</td>
-        <td>${residente.correo || ''}</td>
-        <td>${residente.telefono || ''}</td>
-        <td>${residente.casa || ''}</td>
-        <td>${residente.bloque || ''}</td>
+        <td>${r.nombre || ''}</td>
+        <td>${r.correo || ''}</td>
+        <td>${r.telefono || ''}</td>
+        <td>${r.casa || ''}</td>
+        <td>${r.bloque || ''}</td>
         <td>${estado}</td>
         <td><button class="btn btn-primary">Registrar Pago</button></td>
       `;
-      tr.querySelector('button').addEventListener('click', () => abrirModalPago(residente));
+      tr.querySelector('button').addEventListener('click', () => abrirModalPago(r));
       tbody.appendChild(tr);
     });
   }
 }
 
-// === Crear usuarios ===
+// === Crear usuarios con pago inicial automático ===
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
   const rol = document.getElementById('rolUsuario');
@@ -309,6 +318,9 @@ function manejarCreacionUsuarios() {
     msg.textContent = 'Creando usuario...';
     try {
       const { user } = await auth.createUserWithEmailAndPassword(email.value.trim(), pass.value);
+      const now = new Date();
+      const mesPago = (now.getMonth() + 1).toString().padStart(2, '0') + '-' + now.getFullYear();
+
       const data = {
         UID: user.uid,
         correo: email.value.trim(),
@@ -321,11 +333,14 @@ function manejarCreacionUsuarios() {
       if (rol.value === 'resident') {
         data.casa = casa.value.trim();
         data.bloque = bloque.value.trim();
-        data.estado_pago = 'Pendiente';
+        data.estado_pago = 'Pagado';
+        data.mes_pago = mesPago;
+        data.fecha_pago = firebase.firestore.FieldValue.serverTimestamp();
       }
+
       await db.collection('usuarios').doc(user.uid).set(data);
       msg.style.color = 'green';
-      msg.textContent = 'Usuario creado con éxito.';
+      msg.textContent = '✅ Usuario creado y mes actual marcado como pagado.';
       form.reset();
       camposExtra.style.display = 'none';
       rol.value = '';
