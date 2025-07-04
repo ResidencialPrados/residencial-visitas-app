@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard Guardia Administrador</title>
 
-  <!-- Primero tu theme global con color y responsividad -->
+  <!-- Theme global -->
   <link rel="stylesheet" href="css/theme.css">
 
-  <!-- Luego estilos específicos -->
+  <!-- Estilos específicos guard admin -->
   <link rel="stylesheet" href="css/styles-guard-admin.css">
 
   <!-- Firebase -->
@@ -23,9 +23,9 @@
     <header class="header">
       <h1 class="title">Dashboard Guardia Administrador</h1>
       <nav class="nav-buttons">
-        <button id="logoutBtn" class="btn">Cerrar sesión</button>
-        <button id="activarQRBtn" class="btn">Activar Lector QR</button>
-        <button id="toggleHistorialBtn" class="btn">Ver Historial Completo</button>
+        <button id="logoutBtn" class="btn btn-primary">Cerrar sesión</button>
+        <button id="activarQRBtn" class="btn btn-primary">Activar Lector QR</button>
+        <button id="toggleHistorialBtn" class="btn btn-primary">Ver Historial Completo</button>
       </nav>
     </header>
 
@@ -103,7 +103,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn-full">Crear Usuario</button>
+          <button type="submit" class="btn btn-primary btn-block">Crear Usuario</button>
           <p id="crearUsuarioMsg" class="message"></p>
         </form>
       </section>
@@ -111,8 +111,7 @@
       <section class="card">
         <h2>Residentes y Pagos</h2>
         <div class="field">
-          <input type="text" id="buscarResidente"
-                 placeholder="Buscar por nombre, correo, casa, bloque o teléfono">
+          <input type="text" id="buscarResidente" placeholder="Buscar por nombre, correo, casa, bloque o teléfono">
         </div>
         <table class="table">
           <thead>
@@ -134,7 +133,7 @@
     </main>
 
     <footer class="footer">
-      <button class="back-btn btn" onclick="history.back()">← Volver</button>
+      <button class="back-btn btn btn-primary" onclick="history.back()">← Volver</button>
     </footer>
   </div>
 
