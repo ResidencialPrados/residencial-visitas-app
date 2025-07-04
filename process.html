@@ -41,6 +41,7 @@
 
     const params = new URLSearchParams(window.location.search);
     const visitId = params.get('id');
+
     if (!visitId) {
       document.body.innerHTML = "<p style='color:red;'>Error: Falta el parámetro <code>id</code>.</p>";
       throw new Error("Falta parámetro id");
@@ -58,7 +59,7 @@
         const doc = await db.collection('visits').doc(visitId).get();
         if (!doc.exists) {
           alert("Visita no encontrada.");
-          window.location.href = '../index.html';
+          redirigirPorRol(user.uid);
           return;
         }
 
@@ -69,23 +70,20 @@
         document.getElementById('residentName').textContent = d.residentName || '';
         document.getElementById('houseBlock').textContent = `${d.house || ''} / ${d.block || ''}`;
 
-        // Verificar si ya fue ingresado
         if (d.status === 'ingresado') {
-          alert("Este código QR ya ha sido utilizado para el ingreso.");
-          window.location.href = '../index.html';
+          alert("Este código QR ya ha sido utilizado.");
+          redirigirPorRol(user.uid);
           return;
         }
 
-        // Verificar si han pasado más de 24 horas
         const createdAt = d.createdAt?.toDate();
         const ahora = new Date();
         if (!createdAt || (ahora - createdAt) > 24 * 60 * 60 * 1000) {
-          alert("Este código QR ha expirado. Solicite a su anfitrión un nuevo código.");
-          window.location.href = '../index.html';
+          alert("Este código QR ha expirado. Solicite a su anfitrión uno nuevo.");
+          redirigirPorRol(user.uid);
           return;
         }
 
-        // Mostrar formulario
         document.getElementById('accessForm').style.display = 'block';
 
         document.getElementById('accessForm').addEventListener('submit', async e => {
@@ -94,41 +92,51 @@
 
           const guardUid = user.uid;
           const guardSnap = await db.collection('usuarios').doc(guardUid).get();
-          const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
-          const rol = guardSnap.exists ? guardSnap.data().rol : '';
+          const guardData = guardSnap.exists ? guardSnap.data() : {};
+          const guardName = guardData.nombre || 'Desconocido';
 
           const marca = f.marca.value.trim();
           const color = f.color.value.trim();
           const placa = f.placa.value.trim();
           const obs = f.observaciones.value.trim();
 
-          const updateData = {
+          await visitRef.update({
             status: 'ingresado',
             checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
             guardId: guardUid,
             guardName: guardName,
             vehicle: { marca, color, placa },
             observaciones: obs
-          };
+          });
 
-          await visitRef.update(updateData);
           alert("Acceso registrado correctamente.");
-
-          if (rol === 'guard_admin') {
-            window.location.href = '../guard-admin/index.html';
-          } else if (rol === 'guard') {
-            window.location.href = '../guard/index.html';
-          } else {
-            window.location.href = '../index.html';
-          }
+          redirigirPorRol(guardUid);
         });
 
       } catch (error) {
-        console.error("Error cargando la visita:", error);
-        alert("Error cargando la visita.");
-        window.location.href = '../index.html';
+        console.error("Error cargando visita:", error);
+        alert("Ocurrió un error cargando la visita.");
+        redirigirPorRol(user.uid);
       }
     });
+
+    async function redirigirPorRol(uid) {
+      try {
+        const userDoc = await db.collection('usuarios').doc(uid).get();
+        const rol = userDoc.exists ? userDoc.data().rol : '';
+
+        if (rol === 'guard_admin') {
+          window.location.href = '../guard-admin/index.html';
+        } else if (rol === 'guard') {
+          window.location.href = '../guard/index.html';
+        } else {
+          window.location.href = '../index.html';
+        }
+      } catch (err) {
+        console.error("Error obteniendo el rol:", err);
+        window.location.href = '../index.html';
+      }
+    }
   </script>
 </body>
 </html>
