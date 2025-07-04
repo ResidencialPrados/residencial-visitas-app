@@ -74,12 +74,12 @@ cancelarPagoBtn.addEventListener('click', () => {
 // === Confirmar y registrar pago ===
 confirmarPagoBtn.addEventListener('click', async () => {
   if (!pagoResidenteId) return;
-  const mes = mesPagoSelect.value.padStart(2, '0');
+  const mes = mesPagoSelect.value;
   const anio = anioPagoSelect.value;
   const fechaPago = `${mes}-${anio}`;
 
   if (fechaPago === ultimoMesPago) {
-    alert("⚠️ Ya se ha registrado este mes previamente.");
+    alert("⚠️ Este mes ya está registrado.");
     return;
   }
 
@@ -219,7 +219,7 @@ async function procesarVisita(id) {
   alert('Ingreso registrado con éxito.');
 }
 
-// === Cargar residentes con orden y control de pagos ===
+// === Cargar residentes ===
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
@@ -281,11 +281,10 @@ function cargarResidentes() {
   }
 }
 
-// === Crear usuarios con pago inicial automático ===
+// === Crear usuarios ===
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
   const rol = document.getElementById('rolUsuario');
-  const camposExtra = document.getElementById('camposExtra');
   const msg = document.getElementById('crearUsuarioMsg');
   const email = document.getElementById('nuevoEmail');
   const pass = document.getElementById('nuevoPassword');
@@ -296,13 +295,6 @@ function manejarCreacionUsuarios() {
   const casa = document.getElementById('nuevoCasa');
   const bloque = document.getElementById('nuevoBloque');
 
-  rol.addEventListener('change', () => {
-    camposExtra.style.display = rol.value ? 'block' : 'none';
-    [nombre, identidad, telefono, casa, bloque].forEach(i => i.parentElement.style.display = 'none');
-    if (rol.value === 'guard' || rol.value === 'guard_admin') [nombre, identidad, telefono].forEach(i => i.parentElement.style.display = 'block');
-    if (rol.value === 'resident') [nombre, identidad, telefono, casa, bloque].forEach(i => i.parentElement.style.display = 'block');
-  });
-
   form.addEventListener('submit', async e => {
     e.preventDefault();
     msg.textContent = '';
@@ -312,8 +304,8 @@ function manejarCreacionUsuarios() {
     if (!email.value || !validarEmail(email.value)) return msg.textContent = 'Correo inválido.';
     if (!pass.value || pass.value.length < 6) return msg.textContent = 'Contraseña mínima de 6 caracteres.';
     if (pass.value !== confirm.value) return msg.textContent = 'Las contraseñas no coinciden.';
-    if ((rol.value === 'guard' || rol.value === 'guard_admin') && (!nombre.value || !identidad.value || !telefono.value)) return msg.textContent = 'Completa los campos requeridos.';
-    if (rol.value === 'resident' && (!nombre.value || !identidad.value || !telefono.value || !casa.value || !bloque.value)) return msg.textContent = 'Completa todos los campos para residente.';
+    if (!nombre.value || !identidad.value || !telefono.value) return msg.textContent = 'Completa nombre, identidad y teléfono.';
+    if (rol.value === 'resident' && (!casa.value || !bloque.value)) return msg.textContent = 'Completa casa y bloque para residente.';
 
     msg.textContent = 'Creando usuario...';
     try {
@@ -330,6 +322,7 @@ function manejarCreacionUsuarios() {
         telefono: telefono.value.trim(),
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       };
+
       if (rol.value === 'resident') {
         data.casa = casa.value.trim();
         data.bloque = bloque.value.trim();
@@ -340,13 +333,11 @@ function manejarCreacionUsuarios() {
 
       await db.collection('usuarios').doc(user.uid).set(data);
       msg.style.color = 'green';
-      msg.textContent = '✅ Usuario creado y mes actual marcado como pagado.';
-      form.reset();
-      camposExtra.style.display = 'none';
-      rol.value = '';
+      msg.textContent = '✅ Usuario creado correctamente.';
+      setTimeout(() => location.reload(), 1200);
     } catch (e) {
       console.error(e);
-      msg.textContent = e.code === 'auth/email-already-in-use' ? 'Correo ya registrado.' : 'Error: ' + e.message;
+      msg.textContent = e.code === 'auth/email-already-in-use' ? 'El correo ya está registrado.' : 'Error: ' + e.message;
     }
   });
 }
