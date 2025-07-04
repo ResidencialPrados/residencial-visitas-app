@@ -1,5 +1,4 @@
-/* guard-admin/css/styles-guard-admin.css */
-
+/* ====== Estilos generales ====== */
 body {
     font-family: Arial, sans-serif;
     background-color: #f9f9f9;
@@ -36,6 +35,65 @@ button:hover {
     background-color: #00695c;
 }
 
+input[type="email"],
+input[type="password"],
+input[type="text"],
+select {
+    width: 100%;
+    padding: 8px;
+    margin: 6px 0;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#crearUsuarioMsg {
+    margin-top: 8px;
+    font-weight: bold;
+    color: #004d40;
+    text-align: center;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.nav-buttons {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.qr-section {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.form-stack {
+    display: flex;
+    flex-direction: column;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ====== Tablas ====== */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -54,18 +112,22 @@ table th {
     color: #004d40;
 }
 
-input[type="email"],
-input[type="password"],
-select,
-input[type="text"] {
-    width: 100%;
-    padding: 8px;
-    margin: 6px 0;
-    box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+.loading {
+    text-align: center;
+    color: #888;
 }
 
+/* Resaltar filas pendientes */
+#residents-body tr.pendiente td {
+    background-color: #ffe6e6;
+    color: #c00;
+}
+
+#residents-body tr.pendiente td:nth-child(6) {
+    font-weight: bold;
+}
+
+/* ====== QR Reader ====== */
 #qr-reader {
     max-width: 300px;
     margin: 10px auto;
@@ -73,82 +135,60 @@ input[type="text"] {
     border-radius: 4px;
 }
 
-#crearUsuarioMsg {
-    margin-top: 8px;
-    font-weight: bold;
-    color: #004d40;
-    text-align: center;
+/* ====== Modal de Pago ====== */
+.modal-pago {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
 }
 
-#buscadorResidentes {
+.modal-pago.show {
+    display: flex;
+}
+
+.modal-pago-contenido {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-pago-botones {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 15px;
+}
+
+.modal-pago label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.modal-pago select {
     width: 100%;
     padding: 8px;
-    margin: 10px 0;
     border-radius: 4px;
     border: 1px solid #ccc;
 }
 
-/* Resaltar filas con estado "Pendiente" */
-#tablaResidentes tr.pendiente td {
-    color: #c00;
-    background-color: #ffe6e6;
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
 }
 
-/* Negrita en la columna de Estado de Pago para pendientes */
-#tablaResidentes tr.pendiente td:nth-child(6) {
-    font-weight: bold;
-}
-
+/* ====== Responsive ====== */
 @media screen and (max-width: 600px) {
-    h1 {
-        font-size: 20px;
-    }
-    button {
-        width: 100%;
-        font-size: 16px;
-    }
-    table th, table td {
-        font-size: 12px;
-        padding: 6px;
-    }
-    #qr-reader {
-        width: 100%;
-    }
-}
-.modal-pago {
-  display: none;
-  position: fixed;
-  z-index: 999;
-  left: 0; top: 0;
-  width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-pago-contenido {
-  background: #fff;
-  padding: 20px 30px;
-  border-radius: 8px;
-  max-width: 400px;
-  width: 90%;
-  text-align: center;
-}
-
-.modal-pago-botones {
-  margin-top: 15px;
-  display: flex;
-  justify-content: space-around;
-}
-
-.modal-pago label {
-  display: block;
-  margin: 10px 0 5px;
-}
-
-.modal-pago select {
-  width: 100%;
-  padding: 6px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+    h1 { font-size: 20px; }
+    button { width: 100%; font-size: 16px; }
+    table th, table td { font-size: 12px; padding: 6px; }
+    #qr-reader { width: 100%; }
 }
