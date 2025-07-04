@@ -1,131 +1,114 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <base href="/residencial-visitas-app/">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard Guardia Administrador</title>
+
+  <!-- Fuente Montserrat -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap"
+    rel="stylesheet">
+
+  <!-- Tema global -->
+  <link rel="stylesheet" href="css/theme.css">
+  <!-- Tus estilos extra -->
   <link rel="stylesheet" href="css/styles-guard-admin.css">
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <!-- Firebase + QR Scanner -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" defer></script>
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
 
-  <!-- QR Scanner -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <!-- Tu lógica de JS -->
+  <script src="js/main-guard-admin.js" defer></script>
 </head>
 <body>
-  <h1>Dashboard Guardia Administrador</h1>
+  <div class="container">
+    <h1>Dashboard Guardia Administrador</h1>
 
-  <div class="button-group">
-    <button id="logoutBtn">Cerrar sesión</button>
-    <button id="activarQRBtn">Activar Lector QR</button>
-    <button id="toggleHistorialBtn">Ver Historial Completo</button>
-  </div>
+    <div class="flex-column" style="gap: .5rem; margin-bottom: var(--gap);">
+      <button id="logoutBtn" class="btn">Cerrar sesión</button>
+      <button id="activarQRBtn" class="btn">Activar Lector QR</button>
+      <button id="toggleHistorialBtn" class="btn">Ver Historial Completo</button>
+    </div>
 
-  <div id="qr-reader" style="width:300px; margin-top:10px; display:none;"></div>
+    <div id="qr-reader" class="mt-2" style="width:100%; max-width:300px; margin:0 auto; display:none;"></div>
 
-  <!-- Visitas Pendientes -->
-  <h2 id="visitas-title">Visitas Pendientes (últimas 24h)</h2>
-  <table id="visitas-pendientes">
-    <thead>
-      <tr>
-        <th>Nombre Visitante</th>
-        <th>Marca</th>
-        <th>Color</th>
-        <th>Placa</th>
-        <th>Casa</th>
-        <th>Bloque</th>
-        <th>Teléfono</th>
-        <th>Guardia</th>
-        <th>Hora</th>
-        <th>Acción</th>
-      </tr>
-    </thead>
-    <tbody id="visitas-body">
-      <tr><td colspan="10" style="text-align:center;">Cargando...</td></tr>
-    </tbody>
-  </table>
+    <h2 class="mt-2">Visitas Pendientes (últimas 24 h)</h2>
+    <table id="visitas-pendientes">
+      <thead>
+        <tr>
+          <th>Nombre Visitante</th>
+          <th>Marca</th>
+          <th>Color</th>
+          <th>Placa</th>
+          <th>Casa</th>
+          <th>Bloque</th>
+          <th>Teléfono</th>
+          <th>Guardia</th>
+          <th>Hora</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="visitas-body">
+        <tr>
+          <td colspan="10" class="text-center">Cargando…</td>
+        </tr>
+      </tbody>
+    </table>
 
-  <!-- Registro de Usuario -->
-  <h2>Registro de Usuario</h2>
-  <form id="crearUsuarioForm">
-    <label>
-      Rol:
+    <h2 class="mt-2">Registro de Usuario</h2>
+    <form id="crearUsuarioForm" class="flex-column">
       <select id="rolUsuario" required>
         <option value="">Seleccione rol</option>
         <option value="guard">Guardia Común</option>
         <option value="guard_admin">Guardia Administrador</option>
         <option value="resident">Residente</option>
       </select>
-    </label>
 
-    <div id="camposExtra" style="display:none; margin-top:10px;">
-      <label>
-        Email:
+      <div id="camposExtra" class="flex-column" style="display:none;">
         <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required>
-      </label>
-      <label>
-        Contraseña:
         <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required>
-      </label>
-      <label>
-        Confirmar contraseña:
         <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required>
-      </label>
 
-      <!-- Campos Comunes -->
-      <label id="labelNombre" style="display:none;">
-        Nombre completo:
-        <input type="text" id="nuevoNombre">
-      </label>
-      <label id="labelIdentidad" style="display:none;">
-        Identidad:
-        <input type="text" id="nuevoIdentidad">
-      </label>
-      <label id="labelTelefono" style="display:none;">
-        Teléfono:
-        <input type="text" id="nuevoTelefono">
-      </label>
+        <input type="text" id="nuevoNombre" placeholder="Nombre completo" style="display:none;">
+        <input type="text" id="nuevoIdentidad" placeholder="Identidad" style="display:none;">
+        <input type="text" id="nuevoTelefono" placeholder="Teléfono" style="display:none;">
+        <input type="text" id="nuevoCasa" placeholder="Casa" style="display:none;">
+        <input type="text" id="nuevoBloque" placeholder="Bloque" style="display:none;">
+      </div>
 
-      <!-- Campos Residente -->
-      <label id="labelCasa" style="display:none;">
-        Casa:
-        <input type="text" id="nuevoCasa">
-      </label>
-      <label id="labelBloque" style="display:none;">
-        Bloque:
-        <input type="text" id="nuevoBloque">
-      </label>
-    </div>
+      <button type="submit" class="btn">Crear Usuario</button>
+      <p id="crearUsuarioMsg"></p>
+    </form>
 
-    <button type="submit" style="margin-top:10px;">Crear Usuario</button>
-    <p id="crearUsuarioMsg"></p>
-  </form>
+    <h2 class="mt-2">Residentes y Pagos</h2>
+    <input
+      type="text"
+      id="buscarResidente"
+      placeholder="Buscar residente por nombre, correo, casa, bloque o teléfono">
 
-  <!-- Residentes y Pagos -->
-  <h2>Residentes y Pagos</h2>
-  <input type="text" id="buscarResidente"
-         placeholder="Buscar residente por nombre, correo, casa, bloque o teléfono"
-         style="width:100%; max-width:400px; margin-bottom:10px;">
-
-  <table id="tablaResidentes">
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Correo</th>
-        <th>Teléfono</th>
-        <th>Casa</th>
-        <th>Bloque</th>
-        <th>Estado de Pago</th>
-        <th>Acción</th>
-      </tr>
-    </thead>
-    <tbody id="residents-body">
-      <tr><td colspan="7" style="text-align:center;">Cargando...</td></tr>
-    </tbody>
-  </table>
-
-  <script src="js/main-guard-admin.js"></script>
+    <table id="tablaResidentes">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Teléfono</th>
+          <th>Casa</th>
+          <th>Bloque</th>
+          <th>Estado de Pago</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="residents-body">
+        <tr>
+          <td colspan="7" class="text-center">Cargando…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </body>
 </html>
