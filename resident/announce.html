@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Anunciar Visita ‒ Residencial Los Prados</title>
 
-  <!-- Theme CSS común para todo resident -->
+  <!-- 1) Tu tema compartido -->
   <link rel="stylesheet" href="css/theme.css">
-  <!-- Estilos específicos -->
+  <!-- 2) Estilos específicos de esta página -->
   <link rel="stylesheet" href="css/styles-announce.css">
   
   <!-- Firebase + QRious -->
@@ -18,35 +18,52 @@
 </head>
 <body class="bg-light">
 
-  <header class="header">
-    <button class="btn btn-ghost" onclick="location.href='index.html'">
-      ← Volver
-    </button>
-    <h1 class="title">Anunciar Visita</h1>
-  </header>
-
-  <main class="container">
-    <form id="announceForm" class="card form-card">
-      <div class="form-group">
-        <label for="visitorNameInput">Nombre completo del visitante</label>
-        <input type="text" id="visitorNameInput" required placeholder="Ej. Juan Pérez" />
+  <main class="container py-6">
+    <div class="card shadow">
+      <div class="card-header flex items-center justify-between">
+        <button class="btn btn-outline-primary btn-back" onclick="location.href='index.html'">
+          ← Volver
+        </button>
+        <h1 class="text-xl font-bold text-primary">Anunciar Visita</h1>
+        <!-- espaciador para centrar el título -->
+        <div style="width:3.5rem;"></div>
       </div>
-      <div class="form-group">
-        <label for="referenceInput">Observaciones (opcional)</label>
-        <textarea id="referenceInput" rows="3" placeholder="Alguna referencia..."></textarea>
-      </div>
-      <button type="submit" class="btn btn-primary btn-block">
-        Crear Visita
-      </button>
-    </form>
 
-    <section id="qrResult" class="card qr-section" style="display:none;">
-      <h2 class="subtitle">QR para el visitante</h2>
-      <canvas id="qrCanvas" class="qr-canvas"></canvas>
-      <button id="shareBtn" class="btn btn-secondary btn-block">
-        Compartir por WhatsApp
-      </button>
-    </section>
+      <form id="announceForm" class="card-body space-y-4">
+        <div class="form-group">
+          <label for="visitorNameInput" class="form-label">Nombre completo del visitante</label>
+          <input
+            type="text"
+            id="visitorNameInput"
+            class="form-control"
+            placeholder="Ej. Juan Pérez"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="referenceInput" class="form-label">Observaciones (opcional)</label>
+          <textarea
+            id="referenceInput"
+            rows="3"
+            class="form-control"
+            placeholder="Alguna referencia..."
+          ></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          Crear Visita
+        </button>
+      </form>
+
+      <section id="qrResult" class="qr-section card-body text-center" style="display:none;">
+        <h2 class="text-lg font-semibold mb-4 text-primary">QR para el visitante</h2>
+        <canvas id="qrCanvas" class="mx-auto mb-4"></canvas><br>
+        <button id="shareBtn" class="btn btn-secondary btn-block">
+          Compartir por WhatsApp
+        </button>
+      </section>
+    </div>
   </main>
 
   <script src="js/announce.js"></script>
