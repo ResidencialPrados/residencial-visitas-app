@@ -2,12 +2,12 @@
 
 // — Inicializar Firebase —
 firebase.initializeApp({
-  apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
-  authDomain: "residencial-qr.firebaseapp.com",
+  apiKey:    "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
+  authDomain:"residencial-qr.firebaseapp.com",
   projectId: "residencial-qr",
   storageBucket: "residencial-qr.appspot.com",
   messagingSenderId: "21258599408",
-  appId: "1:21258599408:web:81a0a5b062aac6e6bdfb35"
+  appId:     "1:21258599408:web:81a0a5b062aac6e6bdfb35"
 });
 
 const auth = firebase.auth();
@@ -20,14 +20,12 @@ document.getElementById('logoutBtn')
   );
 
 // — Al cargar, verifica sesión —
-document.addEventListener('DOMContentLoaded', () => {
-  auth.onAuthStateChanged(user => {
-    if (!user) {
-      window.location.href = "../index.html";
-    } else {
-      inicializarDashboard();
-    }
-  });
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    window.location.href = "../index.html";
+  } else {
+    inicializarDashboard();
+  }
 });
 
 function inicializarDashboard() {
@@ -61,8 +59,7 @@ function manejarQR() {
             qrDiv.innerHTML = "";
             qrDiv.style.display = 'none';
             qrScanner = null;
-            const visitId = decodedText.trim();
-            window.location.href = `../process.html?id=${visitId}`;
+            window.location.href = `../process.html?id=${decodedText.trim()}`;
           });
         },
         err => console.warn("QR Error:", err)
@@ -91,49 +88,51 @@ function cargarVisitasPendientes() {
     .onSnapshot(snapshot => {
       tbody.innerHTML = '';
       if (snapshot.empty) {
-        tbody.innerHTML = `<tr>
-          <td colspan="10" style="text-align:center; color:gray;">
-            No hay visitas en las últimas 24 horas
-          </td>
-        </tr>`;
-      } else {
-        snapshot.forEach(doc => {
-          const v    = doc.data();
-          const hora = v.createdAt?.toDate().toLocaleString() || '';
-          const tr   = document.createElement('tr');
-
-          tr.innerHTML = `
-            <td>${v.visitorName || 'Sin nombre'}</td>
-            <td>${v.vehicle?.marca || ''}</td>
-            <td>${v.vehicle?.color || ''}</td>
-            <td>${v.vehicle?.placa || ''}</td>
-            <td>${v.house || ''}</td>
-            <td>${v.block || ''}</td>
-            <td>${v.residentPhone || ''}</td>
-            <td class="guard-cell">${v.guardName || ''}</td>
-            <td>${hora}</td>
-            <td>
-              ${v.status === 'pendiente'
-                ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
-                : 'Ingresado'}
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" style="text-align:center; color:gray;">
+              No hay visitas en las últimas 24 horas
             </td>
-          `;
-          tbody.appendChild(tr);
-
-          // Si no tiene guardName en el documento, lo rellenamos por seguridad
-          if (!v.guardName && v.guardId) {
-            db.collection('usuarios').doc(v.guardId).get().then(snap => {
-              if (snap.exists) {
-                tr.querySelector('.guard-cell').textContent = snap.data().nombre;
-              }
-            });
-          }
-        });
+          </tr>`;
+        return;
       }
+      snapshot.forEach(doc => {
+        const v    = doc.data();
+        const hora = v.createdAt?.toDate().toLocaleString() || '';
+        const tr   = document.createElement('tr');
+
+        tr.innerHTML = `
+          <td>${v.visitorName || 'Sin nombre'}</td>
+          <td>${v.vehicle?.marca  || ''}</td>
+          <td>${v.vehicle?.color  || ''}</td>
+          <td>${v.vehicle?.placa  || ''}</td>
+          <td>${v.house           || ''}</td>
+          <td>${v.block           || ''}</td>
+          <td>${v.residentPhone   || ''}</td>
+          <td class="guard-cell">${v.guardName    || ''}</td>
+          <td>${hora}</td>
+          <td>
+            ${v.status === 'pendiente'
+              ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
+              : 'Ingresado'
+            }
+          </td>`;
+
+        tbody.appendChild(tr);
+
+        // Si no tiene guardName en el documento, lo rellenamos por seguridad
+        if (!v.guardName && v.guardId) {
+          db.collection('usuarios').doc(v.guardId).get().then(snap => {
+            if (snap.exists) {
+              tr.querySelector('.guard-cell').textContent = snap.data().nombre;
+            }
+          });
+        }
+      });
     });
 }
 
-// — Procesar visita —  
+// — Procesar visita —
 async function procesarVisita(visitaId) {
   try {
     const ref  = db.collection('visits').doc(visitaId);
@@ -141,22 +140,21 @@ async function procesarVisita(visitaId) {
     if (!snap.exists) {
       return alert("Visita no encontrada.");
     }
-    const v = snap.data();
-    if (v.status === 'ingresado') {
+    if (snap.data().status === 'ingresado') {
       return alert("Ya fue ingresada.");
     }
 
-    // Pedir datos
+    // Pedir datos del vehículo
     const marca = prompt("Marca del vehículo:") || '';
-    const color = prompt("Color del vehículo:") || '';
-    const placa = prompt("Placa del vehículo:") || '';
+    const color = prompt("Color del vehículo:")  || '';
+    const placa = prompt("Placa del vehículo:")  || '';
 
     // Leer guardia actual
     const guardUid  = auth.currentUser.uid;
     const guardSnap = await db.collection('usuarios').doc(guardUid).get();
     const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
 
-    // **CORRECCIÓN**: usar la variable guardUid en lugar de una que no existe
+    // Actualizar visita con guardId y guardName
     await ref.update({
       status:      'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
@@ -198,9 +196,12 @@ function cargarResidentes() {
     );
 
     if (!filtered.length) {
-      tbody.innerHTML = `<tr>
-        <td colspan="7" style="text-align:center;">No hay residentes que coincidan</td>
-      </tr>`;
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align:center;">
+            No hay residentes que coincidan
+          </td>
+        </tr>`;
       return;
     }
 
@@ -333,8 +334,8 @@ function manejarCreacionUsuarios() {
       }
       await db.collection('usuarios').doc(user.uid).set(data);
 
-      msg.style.color   = 'green';
-      msg.textContent   = 'Usuario creado con éxito.';
+      msg.style.color = 'green';
+      msg.textContent = 'Usuario creado con éxito.';
       form.reset();
       camposExtra.style.display = 'none';
       rolSelect.value           = '';
