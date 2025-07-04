@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard Guardia Administrador</title>
 
-  <!-- Manifest para PWA -->
-  <link rel="manifest" href="../manifest.json" />
-  <link rel="stylesheet" href="css/theme.css" />
-  <link rel="stylesheet" href="css/styles-guard-admin.css" />
+  <!-- Theme global -->
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/styles-guard-admin.css">
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
@@ -23,9 +22,9 @@
     <header class="header">
       <h1 class="title">Dashboard Guardia Administrador</h1>
       <nav class="nav-buttons">
-        <button id="logoutBtn" class="btn btn-primary">Cerrar sesión</button>
-        <button id="activarQRBtn" class="btn btn-primary">Activar Lector QR</button>
-        <button id="toggleHistorialBtn" class="btn btn-primary">Ver Historial Completo</button>
+        <button id="logoutBtn" class="btn">Cerrar sesión</button>
+        <button id="activarQRBtn" class="btn">Activar Lector QR</button>
+        <button id="toggleHistorialBtn" class="btn">Ver Historial Completo</button>
       </nav>
     </header>
 
@@ -57,34 +56,60 @@
 
       <section class="card">
         <h2>Registro de Usuario</h2>
-        <div class="field">
-          <label for="rolUsuario">Rol:</label>
-          <select id="rolUsuario" required>
-            <option value="">Seleccione rol</option>
-            <option value="guard">Guardia Común</option>
-            <option value="guard_admin">Guardia Administrador</option>
-            <option value="resident">Residente</option>
-          </select>
-        </div>
+        <form id="crearUsuarioForm" class="form-stack">
+          <div class="field">
+            <label for="rolUsuario">Rol:</label>
+            <select id="rolUsuario" required>
+              <option value="">Seleccione rol</option>
+              <option value="guard">Guardia Común</option>
+              <option value="guard_admin">Guardia Administrador</option>
+              <option value="resident">Residente</option>
+            </select>
+          </div>
 
-        <form id="crearUsuarioForm" class="form-stack" style="display: none;">
-          <div class="field"><label for="nuevoEmail">Email:</label><input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required /></div>
-          <div class="field"><label for="nuevoPassword">Contraseña:</label><input type="password" id="nuevoPassword" minlength="6" required /></div>
-          <div class="field"><label for="nuevoConfirmPassword">Confirmar contraseña:</label><input type="password" id="nuevoConfirmPassword" minlength="6" required /></div>
-          <div class="field"><label for="nuevoNombre">Nombre completo:</label><input type="text" id="nuevoNombre" required /></div>
-          <div class="field"><label for="nuevoIdentidad">Identidad:</label><input type="text" id="nuevoIdentidad" required /></div>
-          <div class="field"><label for="nuevoTelefono">Teléfono:</label><input type="text" id="nuevoTelefono" required /></div>
-          <div class="field" id="fieldCasa" style="display: none;"><label for="nuevoCasa">Casa:</label><input type="text" id="nuevoCasa" /></div>
-          <div class="field" id="fieldBloque" style="display: none;"><label for="nuevoBloque">Bloque:</label><input type="text" id="nuevoBloque" /></div>
+          <div class="field">
+            <label for="nuevoEmail">Email:</label>
+            <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required>
+          </div>
+          <div class="field">
+            <label for="nuevoPassword">Contraseña:</label>
+            <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required>
+          </div>
+          <div class="field">
+            <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
+            <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required>
+          </div>
+          <div class="field">
+            <label for="nuevoNombre">Nombre completo:</label>
+            <input type="text" id="nuevoNombre" required>
+          </div>
+          <div class="field">
+            <label for="nuevoIdentidad">Identidad:</label>
+            <input type="text" id="nuevoIdentidad" required>
+          </div>
+          <div class="field">
+            <label for="nuevoTelefono">Teléfono:</label>
+            <input type="text" id="nuevoTelefono" required>
+          </div>
+          <div class="field" id="campoCasa">
+            <label for="nuevoCasa">Casa:</label>
+            <input type="text" id="nuevoCasa">
+          </div>
+          <div class="field" id="campoBloque">
+            <label for="nuevoBloque">Bloque:</label>
+            <input type="text" id="nuevoBloque">
+          </div>
 
-          <button type="submit" class="btn btn-primary btn-block">Crear Usuario</button>
+          <button type="submit" class="btn-full">Crear Usuario</button>
           <p id="crearUsuarioMsg" class="message"></p>
         </form>
       </section>
 
       <section class="card">
         <h2>Residentes y Pagos</h2>
-        <div class="field"><input type="text" id="buscarResidente" placeholder="Buscar por nombre, correo, casa, bloque o teléfono" /></div>
+        <div class="field">
+          <input type="text" id="buscarResidente" placeholder="Buscar por nombre, correo, casa, bloque o teléfono">
+        </div>
         <table class="table">
           <thead>
             <tr>
@@ -104,49 +129,11 @@
       </section>
     </main>
 
-    <!-- Modal de Pago -->
-    <div id="modalPago" class="modal-pago">
-      <div class="modal-pago-contenido">
-        <h2>Registrar Pago</h2>
-        <p id="modalPagoNombre"></p>
-        <label for="mesPago">Mes a pagar:</label>
-        <select id="mesPago"></select>
-        <label for="anioPago">Año a pagar:</label>
-        <select id="anioPago"></select>
-        <div class="modal-pago-botones">
-          <button id="confirmarPagoBtn" class="btn btn-primary">Registrar Pago</button>
-          <button id="cancelarPagoBtn" class="btn">Cancelar</button>
-        </div>
-      </div>
-    </div>
-
-    <script src="js/main-guard-admin.js" defer></script>
-
-    <script>
-      // Mostrar u ocultar campos de casa y bloque según el rol
-      document.getElementById('rolUsuario').addEventListener('change', function() {
-        const form = document.getElementById('crearUsuarioForm');
-        const fieldCasa = document.getElementById('fieldCasa');
-        const fieldBloque = document.getElementById('fieldBloque');
-        const rol = this.value;
-
-        form.style.display = rol ? 'block' : 'none';
-        if (rol === 'resident') {
-          fieldCasa.style.display = 'block';
-          fieldBloque.style.display = 'block';
-        } else {
-          fieldCasa.style.display = 'none';
-          fieldBloque.style.display = 'none';
-        }
-      });
-
-      // Service Worker corregido
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/residencial-visitas-app/service-worker.js')
-          .then(reg => console.log('✅ Service Worker registrado:', reg))
-          .catch(err => console.error('❌ Error en Service Worker:', err));
-      }
-    </script>
+    <footer class="footer">
+      <button class="back-btn btn" onclick="history.back()">← Volver</button>
+    </footer>
   </div>
+
+  <script src="js/main-guard-admin.js" defer></script>
 </body>
 </html>
