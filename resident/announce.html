@@ -5,34 +5,47 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Anunciar Visita ‒ Residencial Los Prados</title>
 
-  <!-- Estilos -->
+  <!-- Theme CSS común para todo resident -->
+  <link rel="stylesheet" href="css/theme.css">
+  <!-- Estilos específicos -->
   <link rel="stylesheet" href="css/styles-announce.css">
-
+  
   <!-- Firebase + QRious -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
 </head>
-<body>
-  <main>
-    <h1>Anunciar Visita</h1>
-    <form id="announceForm">
-      <label>
-        Nombre completo del visitante:
-        <input type="text" id="visitorNameInput" required>
-      </label>
-      <label>
-        Observaciones (opcional):
-        <textarea id="referenceInput"></textarea>
-      </label>
-      <button type="submit">Crear Visita</button>
+<body class="bg-light">
+
+  <header class="header">
+    <button class="btn btn-ghost" onclick="location.href='index.html'">
+      ← Volver
+    </button>
+    <h1 class="title">Anunciar Visita</h1>
+  </header>
+
+  <main class="container">
+    <form id="announceForm" class="card form-card">
+      <div class="form-group">
+        <label for="visitorNameInput">Nombre completo del visitante</label>
+        <input type="text" id="visitorNameInput" required placeholder="Ej. Juan Pérez" />
+      </div>
+      <div class="form-group">
+        <label for="referenceInput">Observaciones (opcional)</label>
+        <textarea id="referenceInput" rows="3" placeholder="Alguna referencia..."></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">
+        Crear Visita
+      </button>
     </form>
 
-    <section id="qrResult" style="display:none; margin-top:20px; text-align:center;">
-      <h2>QR para el visitante</h2>
-      <canvas id="qrCanvas"></canvas><br>
-      <button id="shareBtn">Compartir por WhatsApp</button>
+    <section id="qrResult" class="card qr-section" style="display:none;">
+      <h2 class="subtitle">QR para el visitante</h2>
+      <canvas id="qrCanvas" class="qr-canvas"></canvas>
+      <button id="shareBtn" class="btn btn-secondary btn-block">
+        Compartir por WhatsApp
+      </button>
     </section>
   </main>
 
