@@ -3,111 +3,57 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Anunciar Visita ‒ Residencial Los Prados</title>
+  <title>Anunciar Visita</title>
 
   <base href="/residencial-visitas-app/resident/">
   <link rel="manifest" href="manifest.json"/>
   <link rel="stylesheet" href="css/theme.css"/>
-  <link rel="stylesheet" href="css/styles-announce.css"/>
+  <link rel="stylesheet" href="css/styles-resident.css"/>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js" defer></script>
+  <script src="js/announce.js" defer></script>
 </head>
+
 <body>
   <div class="container">
-    <section class="card">
+    <header class="header">
       <h1 class="title">Anunciar Visita</h1>
+    </header>
 
-      <form id="announceForm" class="form">
-        <div class="form-group">
-          <label for="visitorNameInput" class="form-label">
-            Nombre completo del visitante
-          </label>
-          <input
-            type="text"
-            id="visitorNameInput"
-            class="form-input"
-            placeholder="Ej. Juan Pérez"
-            required
-          />
-        </div>
+    <main>
+      <section class="card">
+        <form id="announceForm" class="form">
+          <div class="form-group">
+            <label for="visitorNameInput" class="form-label">Nombre completo del visitante</label>
+            <input type="text" id="visitorNameInput" class="form-input" placeholder="Ej. Juan Pérez" required/>
+          </div>
 
-        <div class="form-group">
-          <label for="referenceInput" class="form-label">
-            Observaciones <span class="text-muted">(opcional)</span>
-          </label>
-          <textarea
-            id="referenceInput"
-            class="form-textarea"
-            placeholder="Alguna referencia..."
-          ></textarea>
-        </div>
+          <div class="form-group">
+            <label for="referenceInput" class="form-label">
+              Observaciones <span class="text-muted">(opcional)</span>
+            </label>
+            <textarea id="referenceInput" class="form-textarea" placeholder="Alguna referencia..."></textarea>
+          </div>
 
-        <button type="submit" class="btn btn-primary btn-block">
-          Crear Visita
-        </button>
-      </form>
+          <button type="submit" class="btn btn-primary btn-block">Crear Visita</button>
+        </form>
 
-      <!-- Botón Volver debajo de Crear Visita -->
-      <button
-        class="btn back-btn btn-block"
-        onclick="location.href='index.html'"
-      >
-        ← Volver
-      </button>
+        <section id="qrResult" class="qr-result hidden" style="margin-top: 20px; text-align: center;">
+          <h2>QR para el visitante</h2>
+          <canvas id="qrCanvas"></canvas><br>
+          <button id="shareBtn" class="btn btn-secondary btn-block" style="margin-top: 10px;">
+            Compartir por WhatsApp
+          </button>
+        </section>
 
-      <section id="qrResult" class="qr-result hidden">
-        <h2>QR para el visitante</h2>
-        <canvas id="qrCanvas"></canvas>
-        <button id="shareBtn" class="btn btn-secondary btn-block">
-          Compartir por WhatsApp
+        <button class="btn back-btn btn-block" style="margin-top: 20px;" onclick="location.href='index.html'">
+          ← Volver
         </button>
       </section>
-    </section>
+    </main>
   </div>
-
-  <script>
-    firebase.initializeApp({
-      apiKey:    "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
-      authDomain:"residencial-qr.firebaseapp.com",
-      projectId: "residencial-qr",
-      storageBucket:"residencial-qr.appspot.com",
-      messagingSenderId:"21258599408",
-      appId:      "1:21258599408:web:81a0a5b062aac6e6bdfb35"
-    });
-    const auth = firebase.auth();
-    const db   = firebase.firestore();
-
-    auth.onAuthStateChanged(u => {
-      if (!u) location.href = 'index.html';
-    });
-
-    document.getElementById('announceForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const name = document.getElementById('visitorNameInput').value.trim();
-      const ref  = document.getElementById('referenceInput').value.trim();
-      try {
-        const user = auth.currentUser;
-        const visit = await db.collection('visits').add({
-          visitorName:   name,
-          reference:     ref,
-          residentId:    user.uid,
-          // resto de campos...
-          status:        'pendiente',
-          createdAt:     firebase.firestore.FieldValue.serverTimestamp()
-        });
-        const url = `${location.origin}${location.pathname.replace('announce.html','process.html')}?id=${visit.id}`;
-        new QRious({ element: document.getElementById('qrCanvas'), value: url, size: 200 });
-        document.getElementById('qrResult').classList.remove('hidden');
-        document.getElementById('shareBtn').onclick = () => {
-          window.open(`https://wa.me/?text=${encodeURIComponent('Tu acceso: ' + url)}`, '_blank');
-        };
-      } catch (err) {
-        alert('Error al crear visita: ' + err.message);
-      }
-    });
-  </script>
 </body>
 </html>
