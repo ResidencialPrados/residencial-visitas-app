@@ -4,9 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Control de Acceso ‒ Residencial Los Prados</title>
-  <!-- Estilos -->
   <link rel="stylesheet" href="css/styles-process.css">
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -19,30 +17,10 @@
       <p><strong>Anunciante:</strong> <span id="residentName">Cargando…</span></p>
       <p><strong>Casa / Bloque:</strong> <span id="houseBlock">Cargando…</span></p>
     </div>
-
-    <form id="accessForm">
-      <label>
-        Marca del vehículo:
-        <input type="text" name="marca" required>
-      </label>
-      <label>
-        Color del vehículo:
-        <input type="text" name="color" required>
-      </label>
-      <label>
-        Placa:
-        <input type="text" name="placa" required>
-      </label>
-      <label>
-        Observaciones:
-        <textarea name="observaciones"></textarea>
-      </label>
-      <button type="submit">Dar Acceso</button>
-    </form>
   </main>
 
   <script>
-    // 1) Inicializar Firebase
+    // 1) Configurar Firebase
     firebase.initializeApp({
       apiKey:    "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
       authDomain:"residencial-qr.firebaseapp.com",
@@ -54,77 +32,60 @@
     const auth = firebase.auth();
     const db   = firebase.firestore();
 
-    // 2) Obtener el parámetro ?id=
+    // 2) Leer parámetros de URL
     const params  = new URLSearchParams(window.location.search);
     const visitId = params.get('id');
-    let visitRef;
+    const marca   = params.get('marca')         || '';
+    const color   = params.get('color')         || '';
+    const placa   = params.get('placa')         || '';
+    const obs     = params.get('observaciones') || '';
 
     if (!visitId) {
-      document.body.innerHTML = "<p>Error: ID de visita no proporcionado.</p>";
-      throw new Error("Falta el parámetro id");
+      document.body.innerHTML = "<p style='color:red;'>Error: Falta el parámetro <code>id</code> en la URL.</p>";
+      throw new Error("Falta parámetro id");
     }
 
-    // 3) Cargar datos de la visita
-    db.collection('visits').doc(visitId).get()
-      .then(doc => {
-        if (!doc.exists) {
-          alert("Visita no encontrada.");
-          throw new Error("Visita no encontrada");
-        }
-        visitRef = doc.ref;
-        const d = doc.data();
-        document.getElementById('visitorName').textContent = d.visitorName || '';
-        document.getElementById('residentName').textContent = d.residentName || '';
-        document.getElementById('houseBlock').textContent  = `${d.house||''} / ${d.block||''}`;
-      })
-      .catch(err => {
-        console.error(err);
-        if (!visitRef) {
-          document.body.innerHTML = "<p>Error al cargar datos de la visita.</p>";
-        }
-      });
+    let visitRef;
 
-    // 4) Manejar formulario de acceso
-    document.getElementById('accessForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const f = e.target;
+    // 3) Cuando el usuario se autentique y la página cargue, procesar
+    auth.onAuthStateChanged(async user => {
+      if (!user) {
+        // No logueado → volver al login
+        return window.location.href = '../index.html';
+      }
 
-      try {
-        // 4.1) Esperar a que el guard esté autenticado
-        const user = auth.currentUser;
-        if (!user) {
-          alert("Sesión expirada. Por favor, ingresa de nuevo.");
-          return void location.href = '../index.html';
-        }
+      // 3.1) Cargar documento de visita
+      const snap = await db.collection('visits').doc(visitId).get();
+      if (!snap.exists) {
+        alert("Visita no encontrada.");
+        return window.location.href = '../index.html';
+      }
+      visitRef = snap.ref;
+      const d = snap.data();
+      document.getElementById('visitorName').textContent = d.visitorName || '';
+      document.getElementById('residentName').textContent = d.residentName || '';
+      document.getElementById('houseBlock').textContent  = `${d.house||''} / ${d.block||''}`;
 
-        // 4.2) Leer nombre del guardia
+      // 3.2) Si recibimos marca/color/placa por URL, actualizar automáticamente
+      if (marca || color || placa || obs) {
+        // Obtener datos del guardia
         const guardUid  = user.uid;
         const guardSnap = await db.collection('usuarios').doc(guardUid).get();
         const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
 
-        // 4.3) Armar datos de actualización
-        const updateData = {
+        // Actualizar la visita
+        await visitRef.update({
           status:       'ingresado',
           checkInTime:  firebase.firestore.FieldValue.serverTimestamp(),
           guardId:      guardUid,
           guardName:    guardName,
-          vehicle: {
-            marca:       f.marca.value.trim(),
-            color:       f.color.value.trim(),
-            placa:       f.placa.value.trim()
-          },
-          observaciones: f.observaciones.value.trim()
-        };
+          vehicle:      { marca, color, placa },
+          observaciones: obs
+        });
 
-        // 4.4) Actualizar Firestore
-        await visitRef.update(updateData);
         alert("Acceso registrado correctamente.");
-
-        // 4.5) Volver al dashboard del guardia administrador
+        // Redirigir de vuelta al dashboard del guardia
         window.location.href = 'index.html';
-      } catch (err) {
-        console.error(err);
-        alert("Error al registrar acceso.");
       }
     });
   </script>
