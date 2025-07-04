@@ -1,11 +1,13 @@
 const CACHE_NAME = 'guard-admin-v1';
 const urlsToCache = [
   'index.html',
+  'guard-admin/historial.html',
   'css/theme.css',
   'css/styles-guard-admin.css',
   'js/main-guard-admin.js',
+  'js/historial-guard-admin.js',
   'manifest.json',
-  // Agrega aquí imágenes e íconos necesarios
+  // Agrega aquí imágenes o íconos necesarios para historial
 ];
 
 // Instala el service worker y cachea archivos necesarios
@@ -49,8 +51,10 @@ self.addEventListener('fetch', event => {
                 cache.put(event.request, networkResponse.clone());
               });
             })
-            .catch(err => console.warn('[SW] Sin conexión para actualizar:', err));
-          return cachedResponse; // Devuelve lo del cache
+            .catch(() => {
+              // Sin conexión, no pasa nada
+            });
+          return cachedResponse; // Devuelve del cache
         }
         // Si no está en caché, trae de red y lo cachea
         return fetch(event.request)
