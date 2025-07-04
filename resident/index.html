@@ -27,8 +27,8 @@
     <header class="header">
       <h1 class="title">Dashboard Residente</h1>
       <nav class="nav-buttons">
-        <button id="logoutBtn" class="btn btn-primary">Cerrar sesión</button>
-        <button id="anunciarVisitaBtn" class="btn btn-primary"
+        <button id="logoutBtn" class="btn">Cerrar sesión</button>
+        <button id="anunciarVisitaBtn" class="btn"
                 onclick="location.href='announce.html'">
           Anunciar Visita
         </button>
@@ -54,47 +54,13 @@
         </table>
       </section>
     </main>
+
+    <footer class="footer">
+      <button class="back-btn btn" onclick="location.href='index.html'">
+        ← Volver al Dashboard
+      </button>
+    </footer>
   </div>
-
-  <script>
-    // Inicializa Firebase
-    firebase.initializeApp({
-      apiKey:    "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
-      authDomain:"residencial-qr.firebaseapp.com",
-      projectId: "residencial-qr",
-      storageBucket:"residencial-qr.appspot.com",
-      messagingSenderId:"21258599408",
-      appId:     "1:21258599408:web:81a0a5b062aac6e6bdfb35"
-    });
-    const auth = firebase.auth();
-    const db   = firebase.firestore();
-
-    auth.onAuthStateChanged(async user => {
-      if (!user) {
-        window.location.href = "../index.html";
-        return;
-      }
-
-      try {
-        const doc = await db.collection('usuarios').doc(user.uid).get();
-        const rol = doc.exists ? doc.data().rol : '';
-
-        if (rol !== 'resident') {
-          alert("No tienes permiso para acceder al Dashboard de Residente.");
-          if (rol === 'guard_admin') {
-            window.location.href = "../guard-admin/index.html";
-          } else if (rol === 'guard') {
-            window.location.href = "../guard/index.html";
-          } else {
-            window.location.href = "../index.html";
-          }
-        }
-      } catch (err) {
-        console.error("Error verificando rol:", err);
-        window.location.href = "../index.html";
-      }
-    });
-  </script>
 
   <script src="js/main-resident.js" defer></script>
 </body>
