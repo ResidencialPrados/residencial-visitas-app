@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard Guardia Administrador</title>
 
-  <!-- Manifest PWA -->
+  <!-- Manifest para PWA -->
   <link rel="manifest" href="../manifest.json" />
 
   <!-- Theme global -->
@@ -135,45 +135,6 @@
         </table>
       </section>
     </main>
-
-    <script>
-      // Inicializar Firebase
-      firebase.initializeApp({
-        apiKey:    "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
-        authDomain:"residencial-qr.firebaseapp.com",
-        projectId: "residencial-qr",
-        storageBucket:"residencial-qr.appspot.com",
-        messagingSenderId:"21258599408",
-        appId:     "1:21258599408:web:81a0a5b062aac6e6bdfb35"
-      });
-
-      const auth = firebase.auth();
-      const db   = firebase.firestore();
-
-      auth.onAuthStateChanged(async user => {
-        if (!user) {
-          window.location.href = "../index.html";
-          return;
-        }
-        try {
-          const doc = await db.collection('usuarios').doc(user.uid).get();
-          const rol = doc.exists ? doc.data().rol : '';
-          if (rol !== 'guard_admin') {
-            alert("No tienes permiso para acceder al Dashboard de Guardia Administrador.");
-            if (rol === 'guard') {
-              window.location.href = "../guard/index.html";
-            } else if (rol === 'resident') {
-              window.location.href = "../resident/index.html";
-            } else {
-              window.location.href = "../index.html";
-            }
-          }
-        } catch (err) {
-          console.error("Error verificando rol:", err);
-          window.location.href = "../index.html";
-        }
-      });
-    </script>
 
     <script src="js/main-guard-admin.js" defer></script>
 
