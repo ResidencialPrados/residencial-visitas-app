@@ -1,3 +1,7 @@
+// Configurar persistencia local para mantener sesión al cerrar app
+firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+  .catch(error => console.error("Error configurando persistencia:", error));
+
 // Inicializar Firebase
 firebase.initializeApp({
   apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
@@ -16,21 +20,54 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   auth.signOut().then(() => window.location.href = '../index.html');
 });
 
-// Verificar sesión y estado de pago
+// Verificar sesión, rol y estado de pago
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(async user => {
     if (!user) {
       window.location.href = "../index.html";
       return;
     }
-    const uid = user.uid;
-    const userDoc = await db.collection('usuarios').doc(uid).get();
-    const data = userDoc.data();
-    if (data.estado_pago !== 'Pagado') {
-      document.getElementById('pagoPendiente').textContent =
-        "⚠️ Su pago está vencido. Contacte administración.";
+
+    try {
+      const uid = user.uid;
+      const userDoc = await db.collection('usuarios').doc(uid).get();
+
+      if (!userDoc.exists) {
+        alert("Usuario no encontrado.");
+        await auth.signOut();
+        window.location.href = "../index.html";
+        return;
+      }
+
+      const data = userDoc.data();
+      const rol = data.rol || '';
+
+      // Impedir accesos cruzados
+      if (rol !== 'resident') {
+        alert("No tienes permiso para acceder al Dashboard de Residente.");
+        if (rol === 'guard_admin') {
+          window.location.href = "../guard-admin/index.html";
+        } else if (rol === 'guard') {
+          window.location.href = "../guard/index.html";
+        } else {
+          window.location.href = "../index.html";
+        }
+        return;
+      }
+
+      // Mostrar alerta de pago pendiente
+      if (data.estado_pago !== 'Pagado') {
+        document.getElementById('pagoPendiente').textContent =
+          "⚠️ Su pago está vencido. Contacte administración.";
+      }
+
+      // Cargar visitas
+      cargarVisitas(uid);
+
+    } catch (err) {
+      console.error("Error al verificar rol y estado de pago:", err);
+      window.location.href = "../index.html";
     }
-    cargarVisitas(uid);
   });
 });
 
@@ -51,11 +88,11 @@ function cargarVisitas(uid) {
         snapshot.forEach(doc => {
           const v = doc.data();
           const fecha = v.createdAt?.toDate().toLocaleString() || '';
-          const obs   = v.reference || '';
+          const obs = v.reference || '';
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${v.visitorName}</td>
-            <td>${v.status}</td>
+            <td>${v.visitorName || 'Sin nombre'}</td>
+            <td>${v.status || ''}</td>
             <td>${fecha}</td>
             <td>${obs}</td>
           `;
