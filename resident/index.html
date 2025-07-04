@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dashboard Residente</title>
 
   <!-- Hace que todas las rutas siguientes sean relativas a resident/ -->
@@ -11,42 +11,57 @@
   <!-- PWA manifest -->
   <link rel="manifest" href="manifest.json" />
 
-  <!-- CSS y demás recursos a partir de resident/ -->
-  <link rel="stylesheet" href="css/styles-resident.css">
+  <!-- Theme global -->
+  <link rel="stylesheet" href="css/theme.css" />
+  <!-- Estilos específicos de residente -->
+  <link rel="stylesheet" href="css/styles-resident.css" />
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <!-- Firebase SDK (defer para no bloquear render) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js" defer></script>
 </head>
 <body>
-  <h1>Dashboard Residente</h1>
+  <div class="container">
+    <header class="header">
+      <h1 class="title">Dashboard Residente</h1>
+      <nav class="nav-buttons">
+        <button id="logoutBtn" class="btn">Cerrar sesión</button>
+        <button id="anunciarVisitaBtn" class="btn"
+                onclick="location.href='announce.html'">
+          Anunciar Visita
+        </button>
+      </nav>
+      <div id="pagoPendiente" class="alert alert-warning"></div>
+    </header>
 
-  <button id="logoutBtn">Cerrar sesión</button>
-  <div id="pagoPendiente" style="color: red; font-weight: bold; margin: 10px 0;"></div>
+    <main>
+      <section class="card">
+        <h2>Visitas Anunciadas</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Nombre Visitante</th>
+              <th>Estado</th>
+              <th>Fecha</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody id="visitasBody">
+            <tr><td colspan="4" class="loading">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
 
-  <!-- Anunciar visita -->
-  <button id="anunciarVisitaBtn" onclick="window.location.href='announce.html'">
-    Anunciar Visita
-  </button>
+    <footer class="footer">
+      <button class="back-btn btn" onclick="location.href='index.html'">
+        ← Volver al Dashboard
+      </button>
+    </footer>
+  </div>
 
-  <h2>Visitas Anunciadas</h2>
-  <table id="visitasTable">
-    <thead>
-      <tr>
-        <th>Nombre Visitante</th>
-        <th>Estado</th>
-        <th>Fecha</th>
-        <th>Observaciones</th>
-      </tr>
-    </thead>
-    <tbody id="visitasBody">
-      <tr><td colspan="4" style="text-align: center;">Cargando...</td></tr>
-    </tbody>
-  </table>
-
-  <!-- Tu script principal -->
-  <script src="js/main-resident.js"></script>
+  <script src="js/main-resident.js" defer></script>
 </body>
 </html>
