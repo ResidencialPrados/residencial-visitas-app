@@ -7,13 +7,15 @@
 
   <!-- Theme global -->
   <link rel="stylesheet" href="css/theme.css">
+
+  <!-- Estilos específicos -->
   <link rel="stylesheet" href="css/styles-guard-admin.css">
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" defer></script>
-
+  
   <!-- QR Scanner -->
   <script src="https://unpkg.com/html5-qrcode" defer></script>
 </head>
@@ -67,37 +69,39 @@
             </select>
           </div>
 
-          <div class="field">
-            <label for="nuevoEmail">Email:</label>
-            <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required>
-          </div>
-          <div class="field">
-            <label for="nuevoPassword">Contraseña:</label>
-            <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required>
-          </div>
-          <div class="field">
-            <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
-            <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required>
-          </div>
-          <div class="field">
-            <label for="nuevoNombre">Nombre completo:</label>
-            <input type="text" id="nuevoNombre" required>
-          </div>
-          <div class="field">
-            <label for="nuevoIdentidad">Identidad:</label>
-            <input type="text" id="nuevoIdentidad" required>
-          </div>
-          <div class="field">
-            <label for="nuevoTelefono">Teléfono:</label>
-            <input type="text" id="nuevoTelefono" required>
-          </div>
-          <div class="field" id="campoCasa">
-            <label for="nuevoCasa">Casa:</label>
-            <input type="text" id="nuevoCasa">
-          </div>
-          <div class="field" id="campoBloque">
-            <label for="nuevoBloque">Bloque:</label>
-            <input type="text" id="nuevoBloque">
+          <div id="camposExtra" class="form-stack hidden">
+            <div class="field">
+              <label for="nuevoEmail">Email:</label>
+              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required>
+            </div>
+            <div class="field">
+              <label for="nuevoPassword">Contraseña:</label>
+              <input type="password" id="nuevoPassword" minlength="6" placeholder="Mínimo 6 caracteres" required>
+            </div>
+            <div class="field">
+              <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
+              <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required>
+            </div>
+            <div class="field hidden" id="labelNombre">
+              <label for="nuevoNombre">Nombre completo:</label>
+              <input type="text" id="nuevoNombre">
+            </div>
+            <div class="field hidden" id="labelIdentidad">
+              <label for="nuevoIdentidad">Identidad:</label>
+              <input type="text" id="nuevoIdentidad">
+            </div>
+            <div class="field hidden" id="labelTelefono">
+              <label for="nuevoTelefono">Teléfono:</label>
+              <input type="text" id="nuevoTelefono">
+            </div>
+            <div class="field hidden" id="labelCasa">
+              <label for="nuevoCasa">Casa:</label>
+              <input type="text" id="nuevoCasa">
+            </div>
+            <div class="field hidden" id="labelBloque">
+              <label for="nuevoBloque">Bloque:</label>
+              <input type="text" id="nuevoBloque">
+            </div>
           </div>
 
           <button type="submit" class="btn-full">Crear Usuario</button>
@@ -130,7 +134,7 @@
     </main>
 
     <footer class="footer">
-      <button class="back-btn btn" onclick="history.back()">← Volver</button>
+      <button class="btn" onclick="history.back()">← Volver</button>
     </footer>
   </div>
 
