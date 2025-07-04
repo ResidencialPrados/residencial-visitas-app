@@ -1,4 +1,4 @@
-// main-guard-admin.js
+// js/main-guard-admin.js
 
 // — Inicializar Firebase —
 firebase.initializeApp({
@@ -136,11 +136,15 @@ function cargarVisitasPendientes() {
 // — Procesar visita —  
 async function procesarVisita(visitaId) {
   try {
-    const ref      = db.collection('visits').doc(visitaId);
-    const snap     = await ref.get();
-    if (!snap.exists) return alert("Visita no encontrada.");
-    const v        = snap.data();
-    if (v.status === 'ingresado') return alert("Ya fue ingresada.");
+    const ref  = db.collection('visits').doc(visitaId);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      return alert("Visita no encontrada.");
+    }
+    const v = snap.data();
+    if (v.status === 'ingresado') {
+      return alert("Ya fue ingresada.");
+    }
 
     // Pedir datos
     const marca = prompt("Marca del vehículo:") || '';
@@ -152,7 +156,7 @@ async function procesarVisita(visitaId) {
     const guardSnap = await db.collection('usuarios').doc(guardUid).get();
     const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
 
-    // CORRECCIÓN: usar guardUid como guardId
+    // Actualización: usar guardUid como guardId
     await ref.update({
       status:      'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
@@ -229,7 +233,7 @@ async function registrarPago(id) {
   alert("Pago registrado con éxito.");
 }
 
-// — Crear usuarios dinámico con validaciones robustas —
+// — Crear usuarios dinámico con validaciones —
 function manejarCreacionUsuarios() {
   const form         = document.getElementById('crearUsuarioForm');
   const rolSelect    = document.getElementById('rolUsuario');
