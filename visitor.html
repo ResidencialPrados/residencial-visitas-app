@@ -2,37 +2,38 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Residencial Los Prados – Invitación</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Invitación - Residencial Los Prados</title>
 
   <base href="/residencial-visitas-app/">
+  <link rel="manifest" href="manifest.json" />
 
-  <!-- Theme institucional -->
+  <!-- Usa el mismo theme de tu proyecto para coherencia visual -->
   <link rel="stylesheet" href="css/theme.css" />
 
-  <!-- QRious + Firebase -->
+  <!-- QRious -->
   <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
+
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <div class="container">
-    <header class="header">
+    <section class="card" style="text-align: center;">
       <h1 class="title">Residencial Los Prados</h1>
-      <p id="welcome" class="subtitle">Cargando invitación…</p>
-    </header>
-
-    <main>
-      <section id="qr-section" class="card" style="text-align:center; display:none;">
-        <h2>¡Bienvenido!</h2>
-        <canvas id="qr" width="250" height="250" style="margin: 0 auto; border-radius: 12px;"></canvas>
-        <p style="margin-top: 10px;">Por favor, muestra este código al Personal de Seguridad al ingresar.</p>
-      </section>
-
-      <p id="message" class="alert alert-info" style="margin-top: 20px;">
+      <p id="welcome" style="margin: 10px 0;">Cargando invitación…</p>
+      <p id="message" style="margin: 10px 0; color: #555;">
         Gracias por visitarnos. ¡Te esperamos con gusto y te deseamos una visita agradable!
       </p>
-    </main>
+
+      <div id="qr-section" style="display: none; margin-top: 20px;">
+        <canvas id="qr" width="250" height="250" style="margin: auto; border-radius: 12px;"></canvas>
+        <p style="margin-top: 15px; font-size: 0.95rem; color: #333;">
+          Por favor, muestra este código al personal de seguridad al ingresar.
+        </p>
+      </div>
+    </section>
   </div>
 
   <script>
@@ -47,43 +48,43 @@
     });
     const db = firebase.firestore();
 
+    // Referencias a elementos
     const params = new URLSearchParams(window.location.search);
     const visitId = params.get('id');
     const welcome = document.getElementById('welcome');
+    const message = document.getElementById('message');
     const qrSection = document.getElementById('qr-section');
     const qrEl = document.getElementById('qr');
-    const message = document.getElementById('message');
 
     if (!visitId) {
       welcome.textContent = "Error: Falta el identificador de la visita.";
       message.textContent = "No pudimos cargar tu invitación. Contacta a tu anfitrión.";
-      return;
-    }
+    } else {
+      db.collection('visits').doc(visitId).get()
+        .then(doc => {
+          if (!doc.exists) {
+            welcome.textContent = "Invitación no encontrada.";
+            message.textContent = "Por favor, contacta a tu anfitrión para confirmar tu visita.";
+            return;
+          }
+          const data = doc.data();
+          const name = data.visitorName || "Invitado";
+          welcome.textContent = `¡Bienvenido, ${name}!`;
+          message.textContent = "Estamos felices de recibirte en Residencial Los Prados. ¡Disfruta tu visita!";
 
-    db.collection('visits').doc(visitId).get()
-      .then(doc => {
-        if (!doc.exists) {
-          welcome.textContent = "Invitación no encontrada.";
-          message.textContent = "Por favor, contacta a tu anfitrión para confirmar tu visita.";
-          return;
-        }
-        const data = doc.data();
-        const name = data.visitorName || "Invitado";
-        welcome.textContent = `¡Hola, ${name}!`;
-        message.textContent = "¡Te esperamos con gusto en Residencial Los Prados! Disfruta tu visita.";
-
-        new QRious({
-          element: qrEl,
-          value: visitId,
-          size: 250
+          new QRious({
+            element: qrEl,
+            value: visitId,
+            size: 250
+          });
+          qrSection.style.display = 'block';
+        })
+        .catch(err => {
+          console.error("Error cargando visita:", err);
+          welcome.textContent = "Error al cargar la invitación.";
+          message.textContent = "Ocurrió un error al cargar tu invitación. Contacta a tu anfitrión.";
         });
-        qrSection.style.display = 'block';
-      })
-      .catch(err => {
-        console.error("Error cargando visita:", err);
-        welcome.textContent = "Error al cargar la invitación.";
-        message.textContent = "Ocurrió un error al cargar tu invitación. Contacta a tu anfitrión.";
-      });
+    }
   </script>
 </body>
 </html>
