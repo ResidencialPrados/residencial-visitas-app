@@ -4,22 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard Guardia Administrador</title>
-
-  <!-- Manifest para PWA -->
   <link rel="manifest" href="../manifest.json" />
-
-  <!-- Theme global -->
   <link rel="stylesheet" href="css/theme.css" />
-
-  <!-- Estilos específicos de guard_admin -->
   <link rel="stylesheet" href="css/styles-guard-admin.css" />
-
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" defer></script>
-
-  <!-- QR Scanner -->
   <script src="https://unpkg.com/html5-qrcode" defer></script>
 </head>
 <body>
@@ -73,38 +63,14 @@
           </div>
 
           <div id="camposExtra" class="form-stack hidden">
-            <div class="field">
-              <label for="nuevoEmail">Email:</label>
-              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required />
-            </div>
-            <div class="field">
-              <label for="nuevoPassword">Contraseña:</label>
-              <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required />
-            </div>
-            <div class="field">
-              <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
-              <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required />
-            </div>
-            <div class="field hidden" id="labelNombre">
-              <label for="nuevoNombre">Nombre completo:</label>
-              <input type="text" id="nuevoNombre" />
-            </div>
-            <div class="field hidden" id="labelIdentidad">
-              <label for="nuevoIdentidad">Identidad:</label>
-              <input type="text" id="nuevoIdentidad" />
-            </div>
-            <div class="field hidden" id="labelTelefono">
-              <label for="nuevoTelefono">Teléfono:</label>
-              <input type="text" id="nuevoTelefono" />
-            </div>
-            <div class="field hidden" id="labelCasa">
-              <label for="nuevoCasa">Casa:</label>
-              <input type="text" id="nuevoCasa" />
-            </div>
-            <div class="field hidden" id="labelBloque">
-              <label for="nuevoBloque">Bloque:</label>
-              <input type="text" id="nuevoBloque" />
-            </div>
+            <div class="field"><label for="nuevoEmail">Email:</label><input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required /></div>
+            <div class="field"><label for="nuevoPassword">Contraseña:</label><input type="password" id="nuevoPassword" minlength="6" required /></div>
+            <div class="field"><label for="nuevoConfirmPassword">Confirmar contraseña:</label><input type="password" id="nuevoConfirmPassword" minlength="6" required /></div>
+            <div class="field hidden" id="labelNombre"><label for="nuevoNombre">Nombre completo:</label><input type="text" id="nuevoNombre" /></div>
+            <div class="field hidden" id="labelIdentidad"><label for="nuevoIdentidad">Identidad:</label><input type="text" id="nuevoIdentidad" /></div>
+            <div class="field hidden" id="labelTelefono"><label for="nuevoTelefono">Teléfono:</label><input type="text" id="nuevoTelefono" /></div>
+            <div class="field hidden" id="labelCasa"><label for="nuevoCasa">Casa:</label><input type="text" id="nuevoCasa" /></div>
+            <div class="field hidden" id="labelBloque"><label for="nuevoBloque">Bloque:</label><input type="text" id="nuevoBloque" /></div>
           </div>
 
           <button type="submit" class="btn btn-primary btn-block">Crear Usuario</button>
@@ -114,9 +80,7 @@
 
       <section class="card">
         <h2>Residentes y Pagos</h2>
-        <div class="field">
-          <input type="text" id="buscarResidente" placeholder="Buscar por nombre, correo, casa, bloque o teléfono" />
-        </div>
+        <div class="field"><input type="text" id="buscarResidente" placeholder="Buscar por nombre, correo, casa, bloque o teléfono" /></div>
         <table class="table">
           <thead>
             <tr>
@@ -136,26 +100,13 @@
       </section>
     </main>
 
-    <!-- Modal Registrar Pago -->
-    <div id="modalPago" class="modal-pago hidden">
+    <!-- Modal de Pago -->
+    <div id="modalPago" class="modal-pago">
       <div class="modal-pago-contenido">
         <h2>Registrar Pago</h2>
         <p id="modalPagoNombre"></p>
         <label for="mesPago">Mes a pagar:</label>
-        <select id="mesPago">
-          <option value="1">Enero</option>
-          <option value="2">Febrero</option>
-          <option value="3">Marzo</option>
-          <option value="4">Abril</option>
-          <option value="5">Mayo</option>
-          <option value="6">Junio</option>
-          <option value="7">Julio</option>
-          <option value="8">Agosto</option>
-          <option value="9">Septiembre</option>
-          <option value="10">Octubre</option>
-          <option value="11">Noviembre</option>
-          <option value="12">Diciembre</option>
-        </select>
+        <select id="mesPago"></select>
         <label for="anioPago">Año a pagar:</label>
         <select id="anioPago"></select>
         <div class="modal-pago-botones">
@@ -166,8 +117,6 @@
     </div>
 
     <script src="js/main-guard-admin.js" defer></script>
-
-    <!-- Service Worker PWA -->
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('../service-worker.js')
