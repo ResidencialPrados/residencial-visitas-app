@@ -42,20 +42,20 @@
   </main>
 
   <script>
-    // 1) Inicializa Firebase (la misma configuración que ya tienes)
+    // 1) Inicializar Firebase
     firebase.initializeApp({
-      apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
-      authDomain: "residencial-qr.firebaseapp.com",
+      apiKey:    "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
+      authDomain:"residencial-qr.firebaseapp.com",
       projectId: "residencial-qr",
-      storageBucket: "residencial-qr.appspot.com",
-      messagingSenderId: "21258599408",
-      appId: "1:21258599408:web:81a0a5b062aac6e6bdfb35"
+      storageBucket:"residencial-qr.appspot.com",
+      messagingSenderId:"21258599408",
+      appId:      "1:21258599408:web:81a0a5b062aac6e6bdfb35"
     });
     const auth = firebase.auth();
-    const db = firebase.firestore();
+    const db   = firebase.firestore();
 
-    // 2) Leer el parámetro ?id= del enlace
-    const params = new URLSearchParams(window.location.search);
+    // 2) Obtener el parámetro ?id=
+    const params  = new URLSearchParams(window.location.search);
     const visitId = params.get('id');
     let visitRef;
 
@@ -65,39 +65,63 @@
     }
 
     // 3) Cargar datos de la visita
-    db.collection('visits').doc(visitId).get().then(doc => {
-      if (!doc.exists) {
-        alert("Visita no encontrada.");
-        return;
-      }
-      visitRef = doc.ref;
-      const d = doc.data();
-      document.getElementById('visitorName').textContent = d.visitorName;
-      document.getElementById('residentName').textContent = d.residentName;
-      document.getElementById('houseBlock').textContent = `${d.house} / ${d.block}`;
-    }).catch(err => {
-      console.error(err);
-      alert("Error al cargar datos de la visita.");
-    });
+    db.collection('visits').doc(visitId).get()
+      .then(doc => {
+        if (!doc.exists) {
+          alert("Visita no encontrada.");
+          throw new Error("Visita no encontrada");
+        }
+        visitRef = doc.ref;
+        const d = doc.data();
+        document.getElementById('visitorName').textContent = d.visitorName || '';
+        document.getElementById('residentName').textContent = d.residentName || '';
+        document.getElementById('houseBlock').textContent  = `${d.house||''} / ${d.block||''}`;
+      })
+      .catch(err => {
+        console.error(err);
+        if (!visitRef) {
+          document.body.innerHTML = "<p>Error al cargar datos de la visita.</p>";
+        }
+      });
 
-    // 4) Al enviar el formulario, actualiza Firestore
+    // 4) Manejar formulario de acceso
     document.getElementById('accessForm').addEventListener('submit', async e => {
       e.preventDefault();
       const f = e.target;
+
       try {
-        await visitRef.update({
-          status: 'ingresado',
-          checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
-          guardId: auth.currentUser?.uid || null,
+        // 4.1) Esperar a que el guard esté autenticado
+        const user = auth.currentUser;
+        if (!user) {
+          alert("Sesión expirada. Por favor, ingresa de nuevo.");
+          return void location.href = '../index.html';
+        }
+
+        // 4.2) Leer nombre del guardia
+        const guardUid  = user.uid;
+        const guardSnap = await db.collection('usuarios').doc(guardUid).get();
+        const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
+
+        // 4.3) Armar datos de actualización
+        const updateData = {
+          status:       'ingresado',
+          checkInTime:  firebase.firestore.FieldValue.serverTimestamp(),
+          guardId:      guardUid,
+          guardName:    guardName,
           vehicle: {
-            marca: f.marca.value.trim(),
-            color: f.color.value.trim(),
-            placa: f.placa.value.trim()
+            marca:       f.marca.value.trim(),
+            color:       f.color.value.trim(),
+            placa:       f.placa.value.trim()
           },
           observaciones: f.observaciones.value.trim()
-        });
+        };
+
+        // 4.4) Actualizar Firestore
+        await visitRef.update(updateData);
         alert("Acceso registrado correctamente.");
-        // aquí puedes redirigir al guardia a su dashboard si quieres
+
+        // 4.5) Volver al dashboard del guardia administrador
+        window.location.href = 'index.html';
       } catch (err) {
         console.error(err);
         alert("Error al registrar acceso.");
