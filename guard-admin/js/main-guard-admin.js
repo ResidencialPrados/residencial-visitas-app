@@ -1,5 +1,3 @@
-// js/main-guard-admin.js
-
 // — Inicializar Firebase —
 firebase.initializeApp({
   apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
@@ -14,20 +12,35 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 // — Cerrar sesión —
-document.getElementById('logoutBtn')
-  .addEventListener('click', () =>
-    auth.signOut().then(() => window.location.href = '../index.html')
-  );
-
-// — Al cargar, verifica sesión —
-auth.onAuthStateChanged(user => {
-  if (!user) {
-    window.location.href = "../index.html";
-  } else {
-    inicializarDashboard();
-  }
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  auth.signOut().then(() => window.location.href = '../index.html');
 });
 
+// — Verificar sesión y rol al cargar —
+auth.onAuthStateChanged(async user => {
+  if (!user) {
+    window.location.href = "../index.html";
+    return;
+  }
+  const uid = user.uid;
+  const userDoc = await db.collection('usuarios').doc(uid).get();
+  const data = userDoc.data();
+
+  if (!data || data.rol !== 'guard_admin') {
+    if (data?.rol === 'resident') {
+      window.location.href = "../resident/index.html";
+    } else if (data?.rol === 'guard') {
+      window.location.href = "../guard/index.html";
+    } else {
+      window.location.href = "../index.html";
+    }
+    return;
+  }
+
+  inicializarDashboard();
+});
+
+// — Inicializar Dashboard —
 function inicializarDashboard() {
   manejarQR();
   cargarVisitasPendientes();
@@ -35,7 +48,7 @@ function inicializarDashboard() {
   manejarCreacionUsuarios();
 }
 
-// — Función auxiliar: valida formato de email —
+// — Función auxiliar: valida email —
 function validarEmail(email) {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(email);
@@ -77,7 +90,7 @@ function manejarQR() {
   });
 }
 
-// — Cargar últimas 24h de visitas —
+// — Cargar visitas últimas 24h —
 function cargarVisitasPendientes() {
   const tbody = document.getElementById('visitas-body');
   const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -117,7 +130,7 @@ function cargarVisitasPendientes() {
         if (v.status === 'pendiente') {
           const btn = document.createElement('button');
           btn.textContent = 'Registrar';
-          btn.className = 'btn btn-primary'; // CORREGIDO: estilo coherente
+          btn.className = 'btn btn-primary';
           btn.addEventListener('click', () => procesarVisita(doc.id));
           tdAccion.appendChild(btn);
         } else {
@@ -143,12 +156,8 @@ async function procesarVisita(visitaId) {
   try {
     const ref = db.collection('visits').doc(visitaId);
     const snap = await ref.get();
-    if (!snap.exists) {
-      return alert("Visita no encontrada.");
-    }
-    if (snap.data().status === 'ingresado') {
-      return alert("Ya fue ingresada.");
-    }
+    if (!snap.exists) return alert("Visita no encontrada.");
+    if (snap.data().status === 'ingresado') return alert("Ya fue ingresada.");
 
     const marca = prompt("Marca del vehículo:") || '';
     const color = prompt("Color del vehículo:") || '';
@@ -173,7 +182,7 @@ async function procesarVisita(visitaId) {
   }
 }
 
-// — Cargar y filtrar residentes —
+// — Cargar residentes y pagos —
 function cargarResidentes() {
   const tbody = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
@@ -201,9 +210,7 @@ function cargarResidentes() {
     if (!filtered.length) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" style="text-align:center;">
-            No hay residentes que coincidan
-          </td>
+          <td colspan="7" style="text-align:center;">No hay residentes que coincidan</td>
         </tr>`;
       return;
     }
@@ -213,6 +220,7 @@ function cargarResidentes() {
       const estado = r.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
       const tr = document.createElement('tr');
       if (estado === 'Pendiente') tr.classList.add('pendiente');
+
       tr.innerHTML = `
         <td>${r.nombre || ''}</td>
         <td>${r.correo || ''}</td>
@@ -225,7 +233,7 @@ function cargarResidentes() {
       const tdAccion = document.createElement('td');
       const pagarBtn = document.createElement('button');
       pagarBtn.textContent = 'Registrar Pago';
-      pagarBtn.className = 'btn btn-primary'; // CORREGIDO: estilo coherente
+      pagarBtn.className = 'btn btn-primary';
       pagarBtn.addEventListener('click', () => registrarPago(r.id));
       tdAccion.appendChild(pagarBtn);
 
@@ -245,7 +253,7 @@ async function registrarPago(id) {
   alert("Pago registrado con éxito.");
 }
 
-// — Crear usuarios dinámico con validaciones robustas —
+// — Crear usuarios —
 function manejarCreacionUsuarios() {
   const form = document.getElementById('crearUsuarioForm');
   const rolSelect = document.getElementById('rolUsuario');
@@ -352,11 +360,9 @@ function manejarCreacionUsuarios() {
       rolSelect.value = '';
     } catch (error) {
       console.error(error);
-      if (error.code === 'auth/email-already-in-use') {
-        msg.textContent = 'El correo ya está registrado.';
-      } else {
-        msg.textContent = 'Error: ' + error.message;
-      }
+      msg.textContent = error.code === 'auth/email-already-in-use'
+        ? 'El correo ya está registrado.'
+        : 'Error: ' + error.message;
     }
   });
 }
