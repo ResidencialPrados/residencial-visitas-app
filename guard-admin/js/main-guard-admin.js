@@ -2,16 +2,16 @@
 
 // — Inicializar Firebase —
 firebase.initializeApp({
-  apiKey:    "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
-  authDomain:"residencial-qr.firebaseapp.com",
+  apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
+  authDomain: "residencial-qr.firebaseapp.com",
   projectId: "residencial-qr",
   storageBucket: "residencial-qr.appspot.com",
   messagingSenderId: "21258599408",
-  appId:     "1:21258599408:web:81a0a5b062aac6e6bdfb35"
+  appId: "1:21258599408:web:81a0a5b062aac6e6bdfb35"
 });
 
 const auth = firebase.auth();
-const db   = firebase.firestore();
+const db = firebase.firestore();
 
 // — Cerrar sesión —
 document.getElementById('logoutBtn')
@@ -79,7 +79,7 @@ function manejarQR() {
 
 // — Cargar últimas 24h de visitas —
 function cargarVisitasPendientes() {
-  const tbody   = document.getElementById('visitas-body');
+  const tbody = document.getElementById('visitas-body');
   const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   db.collection('visits')
@@ -97,30 +97,36 @@ function cargarVisitasPendientes() {
         return;
       }
       snapshot.forEach(doc => {
-        const v    = doc.data();
+        const v = doc.data();
         const hora = v.createdAt?.toDate().toLocaleString() || '';
-        const tr   = document.createElement('tr');
+        const tr = document.createElement('tr');
 
         tr.innerHTML = `
           <td>${v.visitorName || 'Sin nombre'}</td>
-          <td>${v.vehicle?.marca  || ''}</td>
-          <td>${v.vehicle?.color  || ''}</td>
-          <td>${v.vehicle?.placa  || ''}</td>
-          <td>${v.house           || ''}</td>
-          <td>${v.block           || ''}</td>
-          <td>${v.residentPhone   || ''}</td>
-          <td class="guard-cell">${v.guardName    || ''}</td>
+          <td>${v.vehicle?.marca || ''}</td>
+          <td>${v.vehicle?.color || ''}</td>
+          <td>${v.vehicle?.placa || ''}</td>
+          <td>${v.house || ''}</td>
+          <td>${v.block || ''}</td>
+          <td>${v.residentPhone || ''}</td>
+          <td class="guard-cell">${v.guardName || ''}</td>
           <td>${hora}</td>
-          <td>
-            ${v.status === 'pendiente'
-              ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
-              : 'Ingresado'
-            }
-          </td>`;
+        `;
 
+        const tdAccion = document.createElement('td');
+        if (v.status === 'pendiente') {
+          const btn = document.createElement('button');
+          btn.textContent = 'Registrar';
+          btn.className = 'btn btn-primary'; // CORREGIDO: estilo coherente
+          btn.addEventListener('click', () => procesarVisita(doc.id));
+          tdAccion.appendChild(btn);
+        } else {
+          tdAccion.textContent = 'Ingresado';
+        }
+
+        tr.appendChild(tdAccion);
         tbody.appendChild(tr);
 
-        // Si no tiene guardName en el documento, lo rellenamos por seguridad
         if (!v.guardName && v.guardId) {
           db.collection('usuarios').doc(v.guardId).get().then(snap => {
             if (snap.exists) {
@@ -135,7 +141,7 @@ function cargarVisitasPendientes() {
 // — Procesar visita —
 async function procesarVisita(visitaId) {
   try {
-    const ref  = db.collection('visits').doc(visitaId);
+    const ref = db.collection('visits').doc(visitaId);
     const snap = await ref.get();
     if (!snap.exists) {
       return alert("Visita no encontrada.");
@@ -144,23 +150,20 @@ async function procesarVisita(visitaId) {
       return alert("Ya fue ingresada.");
     }
 
-    // Pedir datos del vehículo
     const marca = prompt("Marca del vehículo:") || '';
-    const color = prompt("Color del vehículo:")  || '';
-    const placa = prompt("Placa del vehículo:")  || '';
+    const color = prompt("Color del vehículo:") || '';
+    const placa = prompt("Placa del vehículo:") || '';
 
-    // Leer guardia actual
-    const guardUid  = auth.currentUser.uid;
+    const guardUid = auth.currentUser.uid;
     const guardSnap = await db.collection('usuarios').doc(guardUid).get();
     const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
 
-    // Actualizar visita con guardId y guardName
     await ref.update({
-      status:      'ingresado',
+      status: 'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
-      guardId:     guardUid,
-      guardName:   guardName,
-      vehicle:     { marca, color, placa }
+      guardId: guardUid,
+      guardName: guardName,
+      vehicle: { marca, color, placa }
     });
 
     alert("Ingreso registrado con éxito.");
@@ -172,9 +175,9 @@ async function procesarVisita(visitaId) {
 
 // — Cargar y filtrar residentes —
 function cargarResidentes() {
-  const tbody    = document.getElementById('residents-body');
+  const tbody = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
-  let cache      = [];
+  let cache = [];
 
   db.collection('usuarios')
     .where('rol', '==', 'resident')
@@ -186,12 +189,12 @@ function cargarResidentes() {
   buscador.addEventListener('input', e => render(cache, e.target.value));
 
   function render(list, filter) {
-    const txt      = filter.trim().toLowerCase();
+    const txt = filter.trim().toLowerCase();
     const filtered = list.filter(r =>
-      (r.nombre   || '').toLowerCase().includes(txt) ||
-      (r.correo   || '').toLowerCase().includes(txt) ||
-      String(r.casa    || '').includes(txt) ||
-      String(r.bloque  || '').includes(txt) ||
+      (r.nombre || '').toLowerCase().includes(txt) ||
+      (r.correo || '').toLowerCase().includes(txt) ||
+      String(r.casa || '').includes(txt) ||
+      String(r.bloque || '').includes(txt) ||
       (r.telefono || '').includes(txt)
     );
 
@@ -208,17 +211,25 @@ function cargarResidentes() {
     tbody.innerHTML = '';
     filtered.forEach(r => {
       const estado = r.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
-      const tr     = document.createElement('tr');
+      const tr = document.createElement('tr');
       if (estado === 'Pendiente') tr.classList.add('pendiente');
       tr.innerHTML = `
-        <td>${r.nombre   || ''}</td>
-        <td>${r.correo   || ''}</td>
+        <td>${r.nombre || ''}</td>
+        <td>${r.correo || ''}</td>
         <td>${r.telefono || ''}</td>
-        <td>${r.casa     || ''}</td>
-        <td>${r.bloque   || ''}</td>
+        <td>${r.casa || ''}</td>
+        <td>${r.bloque || ''}</td>
         <td>${estado}</td>
-        <td><button onclick="registrarPago('${r.id}')">Registrar Pago</button></td>
       `;
+
+      const tdAccion = document.createElement('td');
+      const pagarBtn = document.createElement('button');
+      pagarBtn.textContent = 'Registrar Pago';
+      pagarBtn.className = 'btn btn-primary'; // CORREGIDO: estilo coherente
+      pagarBtn.addEventListener('click', () => registrarPago(r.id));
+      tdAccion.appendChild(pagarBtn);
+
+      tr.appendChild(tdAccion);
       tbody.appendChild(tr);
     });
   }
@@ -229,48 +240,48 @@ async function registrarPago(id) {
   if (!confirm("¿Registrar pago de este residente?")) return;
   await db.collection('usuarios').doc(id).update({
     estado_pago: 'Pagado',
-    fecha_pago:  firebase.firestore.FieldValue.serverTimestamp()
+    fecha_pago: firebase.firestore.FieldValue.serverTimestamp()
   });
   alert("Pago registrado con éxito.");
 }
 
 // — Crear usuarios dinámico con validaciones robustas —
 function manejarCreacionUsuarios() {
-  const form         = document.getElementById('crearUsuarioForm');
-  const rolSelect    = document.getElementById('rolUsuario');
-  const camposExtra  = document.getElementById('camposExtra');
-  const msg          = document.getElementById('crearUsuarioMsg');
+  const form = document.getElementById('crearUsuarioForm');
+  const rolSelect = document.getElementById('rolUsuario');
+  const camposExtra = document.getElementById('camposExtra');
+  const msg = document.getElementById('crearUsuarioMsg');
 
-  const emailInput    = document.getElementById('nuevoEmail');
-  const passInput     = document.getElementById('nuevoPassword');
-  const confirmInput  = document.getElementById('nuevoConfirmPassword');
-  const nombreInput   = document.getElementById('nuevoNombre');
-  const idInput       = document.getElementById('nuevoIdentidad');
-  const telInput      = document.getElementById('nuevoTelefono');
-  const casaInput     = document.getElementById('nuevoCasa');
-  const bloqueInput   = document.getElementById('nuevoBloque');
+  const emailInput = document.getElementById('nuevoEmail');
+  const passInput = document.getElementById('nuevoPassword');
+  const confirmInput = document.getElementById('nuevoConfirmPassword');
+  const nombreInput = document.getElementById('nuevoNombre');
+  const idInput = document.getElementById('nuevoIdentidad');
+  const telInput = document.getElementById('nuevoTelefono');
+  const casaInput = document.getElementById('nuevoCasa');
+  const bloqueInput = document.getElementById('nuevoBloque');
 
   form.reset();
   camposExtra.style.display = 'none';
-  msg.textContent           = '';
-  msg.style.color           = 'red';
+  msg.textContent = '';
+  msg.style.color = 'red';
 
   rolSelect.addEventListener('change', () => {
     camposExtra.style.display = rolSelect.value ? 'block' : 'none';
-    msg.textContent           = '';
+    msg.textContent = '';
     [nombreInput, idInput, telInput, casaInput, bloqueInput].forEach(i =>
       i.parentElement.style.display = 'none'
     );
 
     if (rolSelect.value === 'guard' || rolSelect.value === 'guard_admin') {
       nombreInput.parentElement.style.display = 'block';
-      idInput.parentElement.style.display     = 'block';
-      telInput.parentElement.style.display    = 'block';
+      idInput.parentElement.style.display = 'block';
+      telInput.parentElement.style.display = 'block';
     } else if (rolSelect.value === 'resident') {
       nombreInput.parentElement.style.display = 'block';
-      idInput.parentElement.style.display     = 'block';
-      telInput.parentElement.style.display    = 'block';
-      casaInput.parentElement.style.display   = 'block';
+      idInput.parentElement.style.display = 'block';
+      telInput.parentElement.style.display = 'block';
+      casaInput.parentElement.style.display = 'block';
       bloqueInput.parentElement.style.display = 'block';
     }
   });
@@ -280,15 +291,15 @@ function manejarCreacionUsuarios() {
     msg.textContent = '';
     msg.style.color = 'red';
 
-    const rol       = rolSelect.value;
-    const email     = emailInput.value.trim();
-    const password  = passInput.value;
+    const rol = rolSelect.value;
+    const email = emailInput.value.trim();
+    const password = passInput.value;
     const password2 = confirmInput.value;
-    const nombre    = nombreInput.value.trim();
+    const nombre = nombreInput.value.trim();
     const identidad = idInput.value.trim();
-    const telefono  = telInput.value.trim();
-    const casa      = casaInput.value.trim();
-    const bloque    = bloqueInput.value.trim();
+    const telefono = telInput.value.trim();
+    const casa = casaInput.value.trim();
+    const bloque = bloqueInput.value.trim();
 
     if (!rol) {
       msg.textContent = 'Selecciona un rol.';
@@ -319,8 +330,8 @@ function manejarCreacionUsuarios() {
     try {
       const { user } = await auth.createUserWithEmailAndPassword(email, password);
       const data = {
-        UID:            user.uid,
-        correo:         email,
+        UID: user.uid,
+        correo: email,
         rol,
         nombre,
         identidad,
@@ -328,8 +339,8 @@ function manejarCreacionUsuarios() {
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       };
       if (rol === 'resident') {
-        data.casa        = casa;
-        data.bloque      = bloque;
+        data.casa = casa;
+        data.bloque = bloque;
         data.estado_pago = 'Pendiente';
       }
       await db.collection('usuarios').doc(user.uid).set(data);
@@ -338,7 +349,7 @@ function manejarCreacionUsuarios() {
       msg.textContent = 'Usuario creado con éxito.';
       form.reset();
       camposExtra.style.display = 'none';
-      rolSelect.value           = '';
+      rolSelect.value = '';
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/email-already-in-use') {
