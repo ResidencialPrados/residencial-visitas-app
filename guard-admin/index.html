@@ -75,7 +75,7 @@
             </select>
           </div>
 
-          <!-- Campos extra -->
+          <!-- Campos extra ocultos hasta elegir rol -->
           <div id="camposExtra" class="form-stack" style="display:none">
             <div class="field">
               <label for="nuevoEmail">Email:</label>
@@ -150,13 +150,24 @@
   <!-- Principal JS -->
   <script src="js/main-guard-admin.js" defer></script>
 
-  <!-- Registrar Service Worker -->
+  <!-- Botón Pagos y SW -->
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('js/service-worker.js', { scope: './' })
-        .then(() => console.log('SW registrado con scope guard-admin/'))
-        .catch(err => console.error('Error al registrar SW:', err));
-    }
+    // Botón "Pagos"
+    document.addEventListener('DOMContentLoaded', () => {
+      const pagosBtn = document.getElementById('pagosBtn');
+      if (pagosBtn) {
+        pagosBtn.addEventListener('click', () => {
+          window.location.href = 'pagos.html';
+        });
+      }
+
+      // Service Worker (script en js/service-worker.js)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('js/service-worker.js')
+          .then(() => console.log('SW registrado correctamente'))
+          .catch(err => console.error('Error al registrar SW:', err));
+      }
+    });
   </script>
 </body>
 </html>
