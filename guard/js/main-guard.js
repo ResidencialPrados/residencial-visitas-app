@@ -14,42 +14,70 @@ const db   = firebase.firestore();
 
 // ─── Verificar sesión y perfil ───────────────────────────────────────────
 auth.onAuthStateChanged(async user => {
+  console.log('🛠️ onAuthStateChanged → user =', user);
   if (!user) {
-    // No hay sesión → ir al login
+    console.warn('🔒 No hay usuario autenticado → redirigiendo a login');
     return window.location.href = "../index.html";
   }
+
   // Leer perfil en Firestore
-  const perfilRef = db.collection("usuarios").doc(user.uid);
-  const perfilSnap = await perfilRef.get();
-  if (!perfilSnap.exists) {
-    // Perfil no existe → cerrar sesión
+  const perfilRef  = db.collection("usuarios").doc(user.uid);
+  let perfilSnap;
+  try {
+    perfilSnap = await perfilRef.get();
+  } catch (err) {
+    console.error('❌ Error leyendo perfil Firestore:', err);
+    // opcional: forzamos logout
     await auth.signOut();
     return window.location.href = "../index.html";
   }
+
+  console.log('🔥 perfilSnap.exists =', perfilSnap.exists);
+  console.log('🔥 perfilSnap.data() =', perfilSnap.data());
+
+  if (!perfilSnap.exists) {
+    console.warn('⚠️ Perfil no existe → cerrando sesión y redirigiendo');
+    await auth.signOut();
+    return window.location.href = "../index.html";
+  }
+
   const perfil = perfilSnap.data();
   if (perfil.rol !== "guard") {
-    // Rol incorrecto → logout
+    console.warn(`⚠️ Rol incorrecto (${perfil.rol}) → logout`);
     await auth.signOut();
     return window.location.href = "../index.html";
   }
-  // Todo bien, arrancar dashboard
+
+  console.log('✅ Perfil válido y rol "guard" confirmado → iniciando dashboard');
   iniciarDashboardGuardia();
 });
 
 // ─── Inicializar Dashboard Guardia ────────────────────────────────────────
 function iniciarDashboardGuardia() {
+  console.log('🚀 iniciarDashboardGuardia');
+
   // Botón Cerrar sesión
   document.getElementById("logoutBtn")
-    .addEventListener("click", () => auth.signOut()
-      .then(() => window.location.href = "../index.html")
-    );
+    .addEventListener("click", () => {
+      console.log('🔐 Cerrar sesión solicitado');
+      auth.signOut().then(() => {
+        console.log('🔑 Sesión cerrada, redirigiendo a login');
+        window.location.href = "../index.html";
+      });
+    });
 
   // QR Scanner
-  document.getElementById("activarQRBtn") && manejarQR();
+  if (document.getElementById("activarQRBtn")) {
+    manejarQR();
+  }
 
   // Cargar vistas
-  document.getElementById("visitas-body")    && cargarVisitasPendientes();
-  document.getElementById("residents-body")  && cargarPagosResidentes();
+  if (document.getElementById("visitas-body")) {
+    cargarVisitasPendientes();
+  }
+  if (document.getElementById("residents-body")) {
+    cargarPagosResidentes();
+  }
 
   // Ir a pagos
   document.getElementById("pagosBtn")?.addEventListener("click", () => {
@@ -64,6 +92,7 @@ function manejarQR() {
   let scanner = null;
 
   btn.addEventListener("click", () => {
+    console.log('📷 manejarQR → scanner =', scanner);
     if (scanner) {
       scanner.stop().then(() => scanner.clear()).then(() => {
         qrDiv.style.display = "none";
@@ -78,6 +107,7 @@ function manejarQR() {
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
         decoded => {
+          console.log('🔍 QR decodeado:', decoded);
           scanner.stop().then(() => scanner.clear()).then(() => {
             qrDiv.style.display = "none";
             qrDiv.innerHTML    = "";
@@ -85,9 +115,10 @@ function manejarQR() {
             window.location.href = `../process.html?id=${decoded.trim()}`;
           });
         },
-        err => console.warn("QR Error:", err)
+        err => console.warn("❌ QR Error:", err)
       ).catch(err => {
-        alert("No se pudo iniciar lector QR: " + err.message);
+        console.error("❌ Error al iniciar lector QR:", err);
+        alert("No se pudo activar el lector QR: " + err.message);
       });
     }
   });
@@ -95,13 +126,15 @@ function manejarQR() {
 
 // ─── Cargar Visitas Pendientes ────────────────────────────────────────────
 function cargarVisitasPendientes() {
-  const tbody = document.getElementById("visitas-body");
+  console.log('📥 cargarVisitasPendientes');
+  const tbody  = document.getElementById("visitas-body");
   const cutoff = new Date(Date.now() - 24*60*60*1000);
 
   db.collection("visits")
     .where("createdAt", ">=", firebase.firestore.Timestamp.fromDate(cutoff))
     .orderBy("createdAt", "desc")
     .onSnapshot(snapshot => {
+      console.log('📊 Snapshot visitas size =', snapshot.size);
       tbody.innerHTML = "";
       if (snapshot.empty) {
         tbody.innerHTML = `
@@ -111,9 +144,9 @@ function cargarVisitasPendientes() {
         return;
       }
       snapshot.forEach(doc => {
-        const v = doc.data();
+        const v    = doc.data();
         const hora = v.createdAt?.toDate().toLocaleString() || "";
-        const tr = document.createElement("tr");
+        const tr   = document.createElement("tr");
         tr.innerHTML = `
           <td>${v.visitorName||""}</td>
           <td>${v.vehicle?.marca||""}</td>
@@ -131,19 +164,24 @@ function cargarVisitasPendientes() {
           }</td>`;
         tbody.appendChild(tr);
 
-        // Si no hay guardName, lo rellenamos
+        // Si no vino guardName, lo rellenamos desde guardId
         if (v.guardId && !v.guardName) {
           db.collection("usuarios").doc(v.guardId).get()
             .then(s => {
-              if (s.exists) tr.querySelector(".guard-cell").textContent = s.data().nombre;
+              if (s.exists) {
+                tr.querySelector(".guard-cell").textContent = s.data().nombre;
+              }
             });
         }
       });
+    }, err => {
+      console.error("❌ Error cargando visitas:", err);
     });
 }
 
 // ─── Procesar Visita ────────────────────────────────────────────────────────
 async function procesarVisita(id) {
+  console.log('▶️ procesarVisita(', id, ')');
   const ref  = db.collection("visits").doc(id);
   const snap = await ref.get();
   if (!snap.exists || snap.data().status==="ingresado") {
@@ -164,21 +202,23 @@ async function procesarVisita(id) {
     guardName,
     vehicle:     { marca, color, placa }
   });
+  console.log('✅ Visita marcada como ingresada');
   alert("Ingreso registrado con éxito.");
 }
 
 // ─── Cargar Pagos de Residentes ─────────────────────────────────────────────
 function cargarPagosResidentes() {
+  console.log('📥 cargarPagosResidentes');
   const tbody    = document.getElementById("residents-body");
   const buscador = document.getElementById("buscarResidente");
   let cache = [];
-
   const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
                  "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
   db.collection("usuarios")
     .where("rol","==","resident")
     .onSnapshot(snap => {
+      console.log('📊 Snapshot residentes size =', snap.size);
       cache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
       render(cache, buscador.value);
     });
@@ -188,12 +228,13 @@ function cargarPagosResidentes() {
   function render(list, filter) {
     const txt = filter.trim().toLowerCase();
     const arr = list.filter(r =>
-      r.nombre?.toLowerCase().includes(txt) ||
-      r.correo?.toLowerCase().includes(txt) ||
+      (r.nombre    || "").toLowerCase().includes(txt) ||
+      (r.correo    || "").toLowerCase().includes(txt) ||
       String(r.casa).includes(txt) ||
       String(r.bloque).includes(txt) ||
-      r.telefono?.includes(txt)
+      (r.telefono  || "").includes(txt)
     );
+    console.log('🔍 Filtrando residentes con "', filter, '":', arr.length);
     if (!arr.length) {
       tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No hay residentes</td></tr>`;
       return;
@@ -202,13 +243,12 @@ function cargarPagosResidentes() {
     tbody.innerHTML = arr.map(r => {
       const pagos = r.pagos||{};
       const key   = `${a}-${String(m).padStart(2,"0")}`;
-      const estado = key in pagos
-        ? (() => {
-            const last = Object.keys(pagos).sort().pop();
-            const [yy, mm] = last.split("-");
-            return `${meses[+mm-1]} ${yy}`;
-          })()
-        : "Pendiente";
+      let estado = "Pendiente";
+      if (key in pagos) {
+        const last = Object.keys(pagos).sort().pop();
+        const [yy, mm] = last.split("-");
+        estado = `${meses[+mm-1]} ${yy}`;
+      }
       return `
         <tr ${estado==="Pendiente"?'class="pendiente"':''}>
           <td>${r.nombre}</td>
