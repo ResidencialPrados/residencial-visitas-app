@@ -29,10 +29,27 @@
     </header>
 
     <main>
+      <!-- QR Scanner -->
       <section id="qr-reader" class="qr-section" aria-hidden="true"></section>
 
-      <!-- … sección de visitas pendiente … -->
+      <!-- Visitas Pendientes -->
+      <section class="card">
+        <h2>Visitas Pendientes (últimas 24 h)</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Nombre Visitante</th><th>Marca</th><th>Color</th>
+              <th>Placa</th><th>Casa</th><th>Bloque</th>
+              <th>Teléfono</th><th>Guardia</th><th>Hora</th><th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="visitas-body">
+            <tr><td colspan="10" class="loading">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </section>
 
+      <!-- Registro de Usuario -->
       <section class="card">
         <h2>Registro de Usuario</h2>
         <form id="crearUsuarioForm" class="form-stack" autocomplete="off">
@@ -89,7 +106,25 @@
         </form>
       </section>
 
-      <!-- … sección de residentes y pagos … -->
+      <!-- Residentes y Pagos -->
+      <section class="card">
+        <h2>Residentes y Pagos</h2>
+        <div class="field">
+          <input type="text" id="buscarResidente"
+                 placeholder="Buscar por nombre, correo, casa, bloque o teléfono">
+        </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Nombre</th><th>Correo</th><th>Teléfono</th>
+              <th>Casa</th><th>Bloque</th><th>Estado de Pago</th><th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="residents-body">
+            <tr><td colspan="7" class="loading">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </section>
     </main>
 
     <footer class="footer">
