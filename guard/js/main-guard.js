@@ -41,14 +41,9 @@ auth.onAuthStateChanged(async user => {
     return window.location.href = "../index.html";
   }
 
-  const perfil = perfilSnap.data();
-  if (perfil.rol !== "guard") {
-    console.warn(`⚠️ Rol incorrecto (${perfil.rol}) → logout`);
-    await auth.signOut();
-    return window.location.href = "../index.html";
-  }
+  // REMOVIDO: Validación de rol para reinicio de lógica Ledin
 
-  console.log('✅ Perfil válido y rol "guard" confirmado → iniciando dashboard');
+  console.log('✅ Perfil válido → iniciando dashboard');
   iniciarDashboardGuardia();
 });
 
@@ -215,8 +210,8 @@ function cargarPagosResidentes() {
   const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
                  "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
+  // REMOVIDO: Filtro por rol para reinicio de lógica Ledin
   db.collection("usuarios")
-    .where("rol","==","resident")
     .onSnapshot(snap => {
       console.log('📊 Snapshot residentes size =', snap.size);
       cache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
