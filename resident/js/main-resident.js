@@ -1,3 +1,5 @@
+// js/main-resident.js
+
 // Inicializar Firebase
 firebase.initializeApp({
   apiKey: "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
@@ -16,7 +18,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   auth.signOut().then(() => window.location.href = '../index.html');
 });
 
-// Verificar sesión, rol y estado de pago
+// Verificar sesión y cargar visitas
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(async user => {
     if (!user) {
@@ -27,31 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const uid = user.uid;
       const userDoc = await db.collection('usuarios').doc(uid).get();
       const data = userDoc.data();
-      const rol = data?.rol || '';
 
-      // Restringir acceso solo a residentes
-      if (rol !== 'resident') {
-        alert("No tienes permiso para acceder al Dashboard de Residente.");
-        if (rol === 'guard_admin') {
-          window.location.href = "../guard-admin/index.html";
-        } else if (rol === 'guard') {
-          window.location.href = "../guard/index.html";
-        } else {
-          window.location.href = "../index.html";
-        }
-        return;
-      }
-
-      // Mostrar alerta de pago vencido
-      if (data.estado_pago !== 'Pagado') {
-        document.getElementById('pagoPendiente').textContent =
-          "⚠️ Su pago está vencido. Contacte administración.";
-      }
+      // REMOVIDO: Lógica de restricción por rol y estado_pago
 
       cargarVisitas(uid);
 
     } catch (err) {
-      console.error("Error al verificar rol y datos del usuario:", err);
+      console.error("Error al verificar datos del usuario:", err);
       window.location.href = "../index.html";
     }
   });
