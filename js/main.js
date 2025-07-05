@@ -58,4 +58,34 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
     }
 
     // 3) Hacer login en Auth con el email recuperado
-    await auth.signInWithEmailAndPassword(emai
+    await auth.signInWithEmailAndPassword(email, password);
+    console.log('✅ Autenticación exitosa en Firebase Auth con email:', email);
+
+    // 4) Redirección según rol
+    if (rol === 'guard') {
+      window.location.href = "guard/index.html";
+    } else if (rol === 'guard_admin') {
+      window.location.href = "guard-admin/index.html";
+    } else if (rol === 'resident') {
+      window.location.href = "resident/index.html";
+    } else {
+      await auth.signOut();
+      window.location.href = "index.html";
+    }
+
+  } catch (err) {
+    console.error('❌ Error en el proceso de login:', err);
+    if (
+      err.code === 'auth/user-not-found' ||
+      err.code === 'auth/wrong-password'
+    ) {
+      errorElem.textContent = 'Identidad o contraseña incorrectos.';
+    }
+    else if (err.code === 'auth/no-role') {
+      errorElem.textContent = 'Usuario sin rol asignado. Contacta a soporte.';
+    }
+    else {
+      errorElem.textContent = err.message || 'Error inesperado.';
+    }
+  }
+});
