@@ -7,22 +7,21 @@ firebase.initializeApp({
   projectId: "residencial-qr",
   storageBucket: "residencial-qr.appspot.com",
   messagingSenderId: "21258599408",
-  appId:     "1:21258599408:web:81a0a5b062aac6e6bdfb35",
-  measurementId: "G-TFYENFPEKX"
+  appId:     "1:21258599408:web:81a0a5b062aac6e6bdfb35"
 });
-
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
 // — Manejo de login por Identidad + Contraseña —
 document.getElementById('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
-
   const identidad = document.getElementById('identidad').value.trim();
-  const password  = document.getElementById('password').value.trim();
+  const password  = document.getElementById('password').value;
   const errorElem = document.getElementById('error');
   errorElem.textContent = '';
   errorElem.style.color = 'red';
+
+  console.log('🔑 Intento de login con identidad:', identidad);
 
   if (!identidad) {
     errorElem.textContent = 'Ingresa tu número de identidad.';
@@ -41,46 +40,49 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
       .limit(1)
       .get();
 
+    console.log('📄 Resultados de consulta por identidad:', snap.size);
     if (snap.empty) {
       throw { code: 'auth/user-not-found' };
     }
 
     // 2) Extraer email y rol del perfil encontrado
-    const perfil = snap.docs[0].data();
-    const email  = perfil.correo;
-    const rol    = perfil.rol;
+    const perfilDoc = snap.docs[0];
+    const perfil    = perfilDoc.data();
+    console.log('👤 Perfil encontrado:', perfil);
 
+    const email = perfil.correo;
+    const rol   = perfil.rol;
     if (!email || !rol) {
       throw { code: 'auth/user-not-found' };
     }
 
     // 3) Hacer login en Auth con el email recuperado
     await auth.signInWithEmailAndPassword(email, password);
+    console.log('✅ Autenticación exitosa en Firebase Auth con email:', email);
 
     // 4) Redirigir según rol
     if (rol === 'guard') {
-      window.location.href = "guard/";
+      window.location.href = "guard/index.html";
     } else if (rol === 'guard_admin') {
-      window.location.href = "guard-admin/";
+      window.location.href = "guard-admin/index.html";
     } else if (rol === 'resident') {
-      window.location.href = "resident/";
+      window.location.href = "resident/index.html";
     } else {
       throw { code: 'auth/no-role' };
     }
 
   } catch (err) {
-    // Credenciales inválidas
+    console.error('❌ Error en el proceso de login:', err);
+    // Errores de credenciales
     if (
       err.code === 'auth/user-not-found' ||
-      err.code === 'auth/wrong-password' ||
-      err.code === 'auth/invalid-email' ||
-      err.code === 'auth/invalid-login-credentials'
+      err.code === 'auth/wrong-password'
     ) {
       errorElem.textContent = 'Identidad o contraseña incorrectos.';
     }
-    // Perfil sin rol válido
+    // Usuario sin rol válido
     else if (err.code === 'auth/no-role') {
-      errorElem.textContent = 'Usuario sin rol asignado. Contactar administración.';
+      errorElem.textContent = 'Usuario sin rol asignado. Contacta a soporte.';
     }
     // Otros errores
     else {
