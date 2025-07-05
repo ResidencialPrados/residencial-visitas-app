@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel de Pagos — Guardia Admin</title>
+
+  <!-- Theme global y estilos -->
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/styles-guard-admin.css">
+  
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="title">Panel de Pagos</h1>
+      <nav class="nav-buttons">
+        <button id="backBtn" class="btn">← Volver al Dashboard</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>Residentes</h2>
+        <div class="field">
+          <input type="text" id="buscarResidente" placeholder="Buscar por nombre, identidad, casa…">
+        </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Identidad</th>
+              <th>Nombre</th>
+              <th>Último Pago</th>
+              <th>Meses Pendientes</th>
+              <th>Aplicar Pago</th>
+            </tr>
+          </thead>
+          <tbody id="residents-body">
+            <tr><td colspan="5" class="loading">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/pagos.js" defer></script>
+</body>
+</html>
