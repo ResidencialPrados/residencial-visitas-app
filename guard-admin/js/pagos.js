@@ -7,7 +7,7 @@ firebase.initializeApp({
   projectId: "residencial-qr",
   storageBucket: "residencial-qr.appspot.com",
   messagingSenderId: "21258599408",
-  appId:     "1:21258599408:web:81a0a5b062aac6e6bdfb35"
+  appId:     "1:21258599408:web:810a5b062aac6e6bdfb35"
 });
 const auth = firebase.auth();
 const db   = firebase.firestore();
@@ -62,15 +62,12 @@ function cargarPanelPagos() {
     }
 
     tbody.innerHTML = '';
-    const hoy   = new Date();
-    const year  = hoy.getFullYear();
-    const mAct  = hoy.getMonth(); // 0 = enero
 
     filtered.forEach(r => {
       const pagos = r.pagos || {}; // { "2025-01": Timestamp, ... }
 
-      // Último pago
-      const keys = Object.keys(pagos).sort();
+      // Último pago registrado
+      const keys       = Object.keys(pagos).sort();
       const ultimoPago = keys.length
         ? (() => {
             const [y, m] = keys.at(-1).split('-');
@@ -78,13 +75,16 @@ function cargarPanelPagos() {
           })()
         : '—';
 
-      // Meses pendientes
+      // Meses pendientes: todos los de enero a diciembre no pagados
       const pendientes = [];
-      for (let m = 0; m <= mAct; m++) {
+      const year = new Date().getFullYear();
+      for (let m = 0; m < 12; m++) {
         const key = `${year}-${String(m+1).padStart(2,'0')}`;
         if (!(key in pagos)) pendientes.push(nombres[m]);
       }
-      const txtPend = pendientes.length ? pendientes.join(', ') : 'Al día';
+      const txtPend = pendientes.length
+        ? pendientes.join(', ')
+        : 'Al día';
 
       tbody.innerHTML += `
         <tr>
@@ -94,7 +94,7 @@ function cargarPanelPagos() {
           <td>${txtPend}</td>
           <td>
             <button class="btn-aplicar" data-id="${r.id}"
-              ${pendientes.length===0?'disabled':''}>
+              ${pendientes.length === 0 ? 'disabled' : ''}>
               Aplicar Pago
             </button>
           </td>
@@ -110,27 +110,28 @@ function cargarPanelPagos() {
 
 // — Modal de selección de meses y registro de pagos —
 async function openPagoModal(userId) {
-  const ref   = db.collection('usuarios').doc(userId);
-  const snap  = await ref.get();
+  const ref  = db.collection('usuarios').doc(userId);
+  const snap = await ref.get();
   if (!snap.exists) return alert('Residente no encontrado.');
-  const datos = snap.data();
-  const pagos = datos.pagos || {};
 
-  const hoy   = new Date();
-  const year  = hoy.getFullYear();
-  const mAct  = hoy.getMonth();
+  const datos  = snap.data();
+  const pagos  = datos.pagos || {};
   const nombres = [
     'Enero','Febrero','Marzo','Abril','Mayo','Junio',
     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
   ];
+  const year = new Date().getFullYear();
 
+  // Lista de todos los meses no pagados
   const disponibles = [];
-  for (let m = 0; m <= mAct; m++) {
+  for (let m = 0; m < 12; m++) {
     const key = `${year}-${String(m+1).padStart(2,'0')}`;
-    if (!(key in pagos)) disponibles.push({ key, label: nombres[m] });
+    if (!(key in pagos)) {
+      disponibles.push({ key, label: nombres[m] });
+    }
   }
   if (!disponibles.length) {
-    return alert('No hay meses pendientes.');
+    return alert('Este residente ya está al día para todo el año.');
   }
 
   // Construir modal
@@ -138,7 +139,7 @@ async function openPagoModal(userId) {
   overlay.id = 'mesesOverlay';
   overlay.innerHTML = `
     <div id="mesesModal">
-      <h3>Meses pendientes</h3>
+      <h3>Seleccione mes(es) a pagar</h3>
       <form id="mesesForm">
         ${disponibles.map(m => `
           <div>
@@ -159,27 +160,29 @@ async function openPagoModal(userId) {
   document.getElementById('cancelMeses').onclick = () => overlay.remove();
   document.getElementById('okMeses').onclick = async () => {
     const sel = Array.from(document.getElementsByName('mes'))
-                   .filter(i=>i.checked).map(i=>i.value);
-    if (!sel.length) return alert('Selecciona al menos un mes.');
+                   .filter(i => i.checked)
+                   .map(i => i.value);
+    if (!sel.length) return alert('Seleccione al menos un mes.');
 
+    // Preparar actualización evitando duplicados
     const upd = {};
     sel.forEach(key => {
       if (!(key in pagos)) {
         upd[`pagos.${key}`] = firebase.firestore.FieldValue.serverTimestamp();
       }
     });
-
     if (!Object.keys(upd).length) {
       overlay.remove();
-      return alert('Esos meses ya estaban pagados.');
+      return alert('Esos meses ya estaban registrados.');
     }
 
+    // Aplicar en Firestore
     try {
       await ref.update(upd);
       alert('¡Gracias! Su pago fortalece la seguridad.');
     } catch (e) {
       console.error(e);
-      alert('Error al registrar pago.');
+      alert('Error al registrar el pago.');
     }
     overlay.remove();
   };
