@@ -53,18 +53,19 @@
       <section class="card">
         <h2>Registro de Usuario</h2>
         <form id="crearUsuarioForm" class="form-stack" autocomplete="off">
-          <!-- SOLO ESTE DIV aparece tras elegir rol -->
-          <div id="camposExtra" class="form-stack" style="display:none">
-            <div class="field">
-              <label for="rolUsuario">Rol:</label>
-              <select id="rolUsuario" required>
-                <option value="">Seleccione rol</option>
-                <option value="guard">Guardia Común</option>
-                <option value="guard_admin">Guardia Administrador</option>
-                <option value="resident">Residente</option>
-              </select>
-            </div>
+          <!-- 1) El selector de rol SIEMPRE visible -->
+          <div class="field">
+            <label for="rolUsuario">Rol:</label>
+            <select id="rolUsuario" required>
+              <option value="">Seleccione rol</option>
+              <option value="guard">Guardia Común</option>
+              <option value="guard_admin">Guardia Administrador</option>
+              <option value="resident">Residente</option>
+            </select>
+          </div>
 
+          <!-- 2) Todos los demás campos ocultos hasta elegir rol -->
+          <div id="camposExtra" class="form-stack" style="display:none">
             <div class="field">
               <label for="nuevoEmail">Email:</label>
               <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required autocomplete="off">
