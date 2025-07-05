@@ -45,14 +45,13 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
       throw { code: 'auth/user-not-found' };
     }
 
-    // 2) Extraer email y rol del perfil encontrado
+    // 2) Extraer email del perfil encontrado
     const perfilDoc = snap.docs[0];
     const perfil    = perfilDoc.data();
     console.log('👤 Perfil encontrado:', perfil);
 
     const email = perfil.correo;
-    const rol   = perfil.rol;
-    if (!email || !rol) {
+    if (!email) {
       throw { code: 'auth/user-not-found' };
     }
 
@@ -60,16 +59,8 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
     await auth.signInWithEmailAndPassword(email, password);
     console.log('✅ Autenticación exitosa en Firebase Auth con email:', email);
 
-    // 4) Redirigir según rol
-    if (rol === 'guard') {
-      window.location.href = "guard/index.html";
-    } else if (rol === 'guard_admin') {
-      window.location.href = "guard-admin/index.html";
-    } else if (rol === 'resident') {
-      window.location.href = "resident/index.html";
-    } else {
-      throw { code: 'auth/no-role' };
-    }
+    // 4) REMOVIDO: Redirección según rol para reinicio de lógica Ledin
+    window.location.href = "dashboard.html";
 
   } catch (err) {
     console.error('❌ Error en el proceso de login:', err);
