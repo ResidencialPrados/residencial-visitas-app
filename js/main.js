@@ -45,39 +45,17 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
       throw { code: 'auth/user-not-found' };
     }
 
-    // 2) Extraer email del perfil encontrado
+    // 2) Extraer email y rol del perfil encontrado
     const perfilDoc = snap.docs[0];
     const perfil    = perfilDoc.data();
     console.log('👤 Perfil encontrado:', perfil);
 
     const email = perfil.correo;
-    if (!email) {
+    const rol   = perfil.rol;
+
+    if (!email || !rol) {
       throw { code: 'auth/user-not-found' };
     }
 
     // 3) Hacer login en Auth con el email recuperado
-    await auth.signInWithEmailAndPassword(email, password);
-    console.log('✅ Autenticación exitosa en Firebase Auth con email:', email);
-
-    // 4) REMOVIDO: Redirección según rol para reinicio de lógica Ledin
-    window.location.href = "dashboard.html";
-
-  } catch (err) {
-    console.error('❌ Error en el proceso de login:', err);
-    // Errores de credenciales
-    if (
-      err.code === 'auth/user-not-found' ||
-      err.code === 'auth/wrong-password'
-    ) {
-      errorElem.textContent = 'Identidad o contraseña incorrectos.';
-    }
-    // Usuario sin rol válido
-    else if (err.code === 'auth/no-role') {
-      errorElem.textContent = 'Usuario sin rol asignado. Contacta a soporte.';
-    }
-    // Otros errores
-    else {
-      errorElem.textContent = err.message || 'Error inesperado.';
-    }
-  }
-});
+    await auth.signInWithEmailAndPassword(emai
