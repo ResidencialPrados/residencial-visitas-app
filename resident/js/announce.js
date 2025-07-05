@@ -20,9 +20,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const qrCanvas  = document.getElementById('qrCanvas');
   const shareBtn  = document.getElementById('shareBtn');
 
-  // Verificar sesión
-  auth.onAuthStateChanged(user => {
+  // Verificar sesión y rol
+  auth.onAuthStateChanged(async user => {
     if (!user) {
+      console.warn("🔒 No hay usuario autenticado → redirigiendo a login");
+      window.location.href = "../index.html";
+      return;
+    }
+    try {
+      const userDoc = await db.collection('usuarios').doc(user.uid).get();
+      const userData = userDoc.data();
+
+      console.log("✅ Usuario autenticado:", userData);
+
+      if (!userData || userData.rol !== "resident") {
+        console.warn(`⚠️ Acceso denegado, rol inválido (${userData?.rol}) → cerrando sesión`);
+        await auth.signOut();
+        window.location.href = "../index.html";
+        return;
+      }
+
+      console.log("✅ Rol 'resident' confirmado, habilitando formulario de anuncio de visitas");
+
+    } catch (err) {
+      console.error("❌ Error verificando datos del usuario:", err);
+      await auth.signOut();
       window.location.href = "../index.html";
     }
   });
@@ -59,8 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
         house        : uData.casa || '',
         block        : uData.bloque || '',
         residentId   : user.uid,
-        status       : 'pendiente', // obligatorio para control de un solo uso
-        createdAt    : firebase.firestore.FieldValue.serverTimestamp() // obligatorio para control de expiración
+        status       : 'pendiente',
+        createdAt    : firebase.firestore.FieldValue.serverTimestamp()
       });
 
       // ─── 3.2) Mostrar el QR generado ───────────────────────────────
@@ -87,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
       form.reset();
 
     } catch (err) {
-      console.error("Error al anunciar visita:", err);
+      console.error("❌ Error al anunciar visita:", err);
       alert("Ocurrió un error al crear la visita. Verifica tu conexión o consulta con soporte.");
     }
   });
