@@ -63,8 +63,6 @@
       <section class="card">
         <h2>Registro de Usuario</h2>
         <form id="crearUsuarioForm" class="form-stack" autocomplete="off">
-
-          <!-- Rol siempre visible -->
           <div class="field">
             <label for="rolUsuario">Rol:</label>
             <select id="rolUsuario" required>
@@ -74,43 +72,9 @@
               <option value="resident">Residente</option>
             </select>
           </div>
-
-          <!-- Campos extra ocultos hasta elegir rol -->
           <div id="camposExtra" class="form-stack" style="display:none">
-            <div class="field">
-              <label for="nuevoEmail">Email:</label>
-              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required autocomplete="off">
-            </div>
-            <div class="field">
-              <label for="nuevoPassword">Contraseña:</label>
-              <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required autocomplete="new-password">
-            </div>
-            <div class="field">
-              <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
-              <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required autocomplete="new-password">
-            </div>
-            <div class="field">
-              <label for="nuevoNombre">Nombre completo:</label>
-              <input type="text" id="nuevoNombre" required>
-            </div>
-            <div class="field">
-              <label for="nuevoIdentidad">Identidad:</label>
-              <input type="text" id="nuevoIdentidad" required>
-            </div>
-            <div class="field">
-              <label for="nuevoTelefono">Teléfono:</label>
-              <input type="text" id="nuevoTelefono" required>
-            </div>
-            <div class="field" id="campoCasa" style="display:none">
-              <label for="nuevoCasa">Casa:</label>
-              <input type="text" id="nuevoCasa">
-            </div>
-            <div class="field" id="campoBloque" style="display:none">
-              <label for="nuevoBloque">Bloque:</label>
-              <input type="text" id="nuevoBloque">
-            </div>
+            <!-- aquí van email, contraseña, nombre, identidad, etc. -->
           </div>
-
           <button type="submit" class="btn-full">Crear Usuario</button>
           <p id="crearUsuarioMsg" class="message"></p>
         </form>
@@ -120,7 +84,8 @@
       <section class="card">
         <h2>Residentes y Pagos</h2>
         <div class="field">
-          <input type="text" id="buscarResidente" placeholder="Buscar por nombre, correo, casa, bloque o teléfono">
+          <input type="text" id="buscarResidente"
+                 placeholder="Buscar por nombre, correo, casa, bloque o teléfono">
         </div>
         <table class="table">
           <thead>
@@ -150,10 +115,10 @@
   <!-- Principal JS -->
   <script src="js/main-guard-admin.js" defer></script>
 
-  <!-- Botón Pagos y SW -->
+  <!-- Listeners para Pagos, Historial y SW -->
   <script>
-    // Botón "Pagos"
     document.addEventListener('DOMContentLoaded', () => {
+      // Botón Pagos → pagos.html
       const pagosBtn = document.getElementById('pagosBtn');
       if (pagosBtn) {
         pagosBtn.addEventListener('click', () => {
@@ -161,9 +126,18 @@
         });
       }
 
-      // Service Worker (script en js/service-worker.js)
+      // Botón Historial → historial.html
+      const histBtn = document.getElementById('toggleHistorialBtn');
+      if (histBtn) {
+        histBtn.addEventListener('click', () => {
+          window.location.href = 'historial.html';
+        });
+      }
+
+      // Registrar Service Worker (desde js/service-worker.js)
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('js/service-worker.js')
+        navigator.serviceWorker
+          .register('js/service-worker.js')
           .then(() => console.log('SW registrado correctamente'))
           .catch(err => console.error('Error al registrar SW:', err));
       }
