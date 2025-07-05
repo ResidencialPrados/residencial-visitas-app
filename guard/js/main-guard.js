@@ -12,43 +12,26 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-// ─── Verificar sesión y rol al cargar ─────────────────────────────────────────
+// ─── Verificar sesión y depurar perfil ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('📄 DOMContentLoaded – inicializando listener de auth');
-  auth.onAuthStateChanged(async user => {
-    console.log('⚙️ onAuthStateChanged fired, user =', user);
+  console.log('📄 DOMContentLoaded – arrancando auth listener');
+  auth.onAuthStateChanged(user => {
+    console.log('🛠️ DEBUG – onAuthStateChanged → user =', user);
     if (!user) {
-      console.warn('🔒 No hay usuario autenticado → redirigiendo a login');
-      window.location.href = "../index.html";
+      console.warn('🔒 DEBUG – user es null, no hay sesión (no redirigimos en debug)');
       return;
     }
-    console.log(`🔑 Usuario autenticado: uid=${user.uid}, email=${user.email}`);
-    let userDoc;
-    try {
-      userDoc = await db.collection('usuarios').doc(user.uid).get();
-      console.log('✅ Documento de perfil obtenido, exists =', userDoc.exists);
-    } catch (err) {
-      console.error('❌ Error al obtener perfil de usuario:', err);
-    }
-    const data = userDoc?.data();
-    console.log('   Datos de perfil:', data);
-
-    if (!data || data.rol !== 'guard') {
-      if (data?.rol === 'resident') {
-        console.log('👤 Rol "resident" detectado → dash residente');
-        window.location.href = "../resident/index.html";
-      } else if (data?.rol === 'guard_admin') {
-        console.log('👮‍♂️ Rol "guard_admin" detectado → dash admin');
-        window.location.href = "../guard-admin/index.html";
-      } else {
-        console.warn('❓ Rol desconocido → redirigiendo a login');
-        window.location.href = "../index.html";
-      }
-      return;
-    }
-
-    console.log('✅ Rol "guard" confirmado → iniciando dashboard guardia');
-    iniciarDashboardGuardia();
+    // Hay user, ahora leemos su perfil en Firestore
+    db.collection('usuarios').doc(user.uid).get()
+      .then(doc => {
+        console.log('🛠️ DEBUG – perfil Firestore:', doc.data());
+        // En esta fase NO redirigimos por rol: arrancamos siempre
+        console.log('✅ DEBUG – arrancamos dashboard SIN comprobar rol');
+        iniciarDashboardGuardia();
+      })
+      .catch(err => {
+        console.error('❌ DEBUG – error leyendo perfil Firestore:', err);
+      });
   });
 });
 
@@ -63,38 +46,39 @@ function iniciarDashboardGuardia() {
     });
   });
 
-  // QR
-  const btnQR = document.getElementById('activarQRBtn');
-  const qrDiv = document.getElementById('qr-reader');
-  let qrScanner = null;
+  // QR Scanner
+  const btnQR   = document.getElementById('activarQRBtn');
+  const qrDiv   = document.getElementById('qr-reader');
+  let scanner   = null;
 
   btnQR.addEventListener('click', () => {
-    console.log('📷 Botón QR clickeado, estado scanner=', qrScanner);
-    if (!qrScanner) {
+    console.log('📷 Botón QR clickeado, estado scanner =', scanner);
+    if (!scanner) {
       qrDiv.style.display = "block";
-      qrScanner = new Html5Qrcode("qr-reader");
-      qrScanner.start(
+      scanner = new Html5Qrcode("qr-reader");
+      scanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
-        async decodedText => {
-          console.log('🔍 QR decodeado:', decodedText);
-          await qrScanner.stop();
-          qrDiv.innerHTML = "";
-          qrDiv.style.display = "none";
-          qrScanner = null;
-          procesarVisita(decodedText.trim());
+        decoded => {
+          console.log('🔍 QR decodeado:', decoded);
+          scanner.stop().then(() => scanner.clear()).then(() => {
+            qrDiv.innerHTML = "";
+            qrDiv.style.display = "none";
+            scanner = null;
+            procesarVisita(decoded.trim());
+          });
         },
-        err => console.warn("QR Scan error:", err)
+        err => console.warn("❌ QR Scan error:", err)
       ).catch(err => {
         console.error("❌ Error iniciando lector QR:", err);
         alert("No se pudo activar el lector QR: " + err.message);
       });
     } else {
-      qrScanner.stop().then(() => {
+      scanner.stop().then(() => {
         console.log('📷 Scanner detenido manualmente');
         qrDiv.innerHTML = "";
         qrDiv.style.display = "none";
-        qrScanner = null;
+        scanner = null;
       });
     }
   });
@@ -113,7 +97,7 @@ function cargarVisitasPendientes() {
     .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(hace24h))
     .orderBy('createdAt', 'asc')
     .onSnapshot(snap => {
-      console.log('📊 Snapshot visitas:', snap.size, 'documentos');
+      console.log('📊 Snapshot visitas:', snap.size);
       tbody.innerHTML = '';
       if (snap.empty) {
         tbody.innerHTML = `
@@ -139,14 +123,13 @@ function cargarVisitasPendientes() {
             <td>${hora}</td>
             <td>
               ${v.status === 'pendiente'
-                ? `<button class="btn btn-primary" onclick="procesarVisita('${doc.id}')">Registrar</button>`
+                ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
                 : 'Ingresado'}
             </td>`;
           tbody.appendChild(tr);
-
           if (!v.guardName && v.guardId) {
             db.collection('usuarios').doc(v.guardId).get().then(uSnap => {
-              console.log('👮‍♂️ Fetch nombre guard por ID:', v.guardId, uSnap.exists);
+              console.log('👮‍♂️ Nombre guard fetch:', v.guardId, uSnap.exists);
               if (uSnap.exists) {
                 tr.querySelector('.guard-cell').textContent = uSnap.data().nombre;
               }
@@ -156,12 +139,6 @@ function cargarVisitasPendientes() {
       }
     }, err => {
       console.error("❌ Error cargando visitas:", err);
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="10" style="text-align:center; color:red;">
-            Error al cargar visitas. Consulta la consola.
-          </td>
-        </tr>`;
     });
 }
 
@@ -171,28 +148,27 @@ async function procesarVisita(visitaId) {
   try {
     const ref  = db.collection('visits').doc(visitaId);
     const snap = await ref.get();
-    console.log('   Visita snapshot:', snap.exists);
+    console.log('   Visita existe =', snap.exists);
     if (!snap.exists) return alert("Visita no encontrada.");
     const v = snap.data();
     if (v.status === 'ingresado') return alert("Ya fue ingresada.");
 
-    const marca = prompt("Marca (opcional):", "") || null;
-    const color = prompt("Color (opcional):", "")  || null;
-    const placa = prompt("Placa (opcional):", "")  || null;
+    const marca = prompt("Marca (opcional):") || null;
+    const color = prompt("Color (opcional):") || null;
+    const placa = prompt("Placa (opcional):") || null;
 
     const uid       = auth.currentUser.uid;
     const guardSnap = await db.collection('usuarios').doc(uid).get();
     const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
 
     await ref.update({
-      status:       'ingresado',
-      checkInTime:  firebase.firestore.FieldValue.serverTimestamp(),
-      guardId:      uid,
+      status:      'ingresado',
+      checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
+      guardId:     uid,
       guardName,
-      vehicle:      { marca, color, placa }
+      vehicle:     { marca, color, placa }
     });
-
-    console.log('✅ Visita marcada como ingresada');
+    console.log('✅ Visita registrada');
     alert("Ingreso registrado.");
   } catch (e) {
     console.error("❌ Error procesando visita:", e);
@@ -226,26 +202,20 @@ function cargarPagosResidentes() {
       String(r.bloque) .includes(txt) ||
       (r.telefono  || '').includes(txt)
     );
-
-    console.log('🔍 Filtrando residentes con "' + filter + '":', filtered.length);
-    if (!filtered.length) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No hay residentes</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = '';
-    filtered.forEach(r => {
-      const estado = r.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
-      const tr     = document.createElement('tr');
-      if (estado === 'Pendiente') tr.classList.add('pendiente');
-      tr.innerHTML = `
-        <td>${r.nombre}</td>
-        <td>${r.correo}</td>
-        <td>${r.telefono}</td>
-        <td>${r.casa}</td>
-        <td>${r.bloque}</td>
-        <td>${estado}</td>`;
-      tbody.appendChild(tr);
-    });
+    console.log('🔍 Filtrando residentes con "'+filter+'":', filtered.length);
+    tbody.innerHTML = filtered.length
+      ? filtered.map(r => {
+          const estado = r.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
+          return `
+            <tr ${estado==='Pendiente'? 'class="pendiente"' : ''}>
+              <td>${r.nombre}</td>
+              <td>${r.correo}</td>
+              <td>${r.telefono}</td>
+              <td>${r.casa}</td>
+              <td>${r.bloque}</td>
+              <td>${estado}</td>
+            </tr>`;
+        }).join('')
+      : `<tr><td colspan="6" style="text-align:center;">No hay residentes</td></tr>`;
   }
 }
