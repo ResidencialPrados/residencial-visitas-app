@@ -12,7 +12,7 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ─── Verificar sesión y perfil ───────────────────────────────────────────
+// ─── Verificar sesión con identidad ──────────────────────────────────────
 auth.onAuthStateChanged(async user => {
   console.log('🛠️ onAuthStateChanged → user =', user);
 
@@ -21,42 +21,53 @@ auth.onAuthStateChanged(async user => {
     return window.location.href = "../index.html";
   }
 
-  console.log(`🔍 Verificando perfil en Firestore para UID: ${user.uid}`);
+  const identidad = prompt("Ingrese su número de identidad para validar acceso:");
+  if (!identidad) {
+    alert("⚠️ Debe ingresar su número de identidad para continuar.");
+    await auth.signOut();
+    return window.location.href = "../index.html";
+  }
 
-  const perfilRef = db.collection("usuarios").doc(user.uid);
-  let perfilSnap;
+  console.log(`🔍 Buscando usuario con identidad: "${identidad}" en Firestore...`);
+
   try {
-    perfilSnap = await perfilRef.get();
-    console.log('✅ Perfil obtenido de Firestore correctamente');
+    const query = await db.collection("usuarios").where("identidad", "==", identidad).get();
+
+    if (query.empty) {
+      console.warn("❌ Identidad no encontrada en Firestore → cerrando sesión");
+      alert("⚠️ Identidad no encontrada en el sistema. Contacte a administración.");
+      await auth.signOut();
+      return window.location.href = "../index.html";
+    }
+
+    const perfilDoc = query.docs[0];
+    const perfilData = perfilDoc.data();
+
+    console.log("✅ Usuario encontrado:", perfilData);
+
+    if (perfilData.UID !== user.uid) {
+      console.warn("❌ UID no coincide con el del usuario autenticado → cerrando sesión");
+      alert("⚠️ El UID no coincide con el usuario autenticado. Contacte a administración.");
+      await auth.signOut();
+      return window.location.href = "../index.html";
+    }
+
+    if (!perfilData.rol || perfilData.rol.trim() !== "guard") {
+      console.warn(`❌ Acceso denegado, rol inválido: "${perfilData.rol}" → cerrando sesión`);
+      alert(`⚠️ Acceso denegado. Se requiere rol "guard" para acceder.`);
+      await auth.signOut();
+      return window.location.href = "../index.html";
+    }
+
+    console.log('✅ Validación de identidad y rol exitosa → iniciando dashboard');
+    iniciarDashboardGuardia();
+
   } catch (err) {
-    console.error('❌ Error leyendo perfil Firestore:', err);
-    alert('Error leyendo perfil Firestore: ' + err.message);
+    console.error("❌ Error consultando Firestore:", err);
+    alert("Error consultando Firestore: " + err.message);
     await auth.signOut();
-    return window.location.href = "../index.html";
+    window.location.href = "../index.html";
   }
-
-  console.log('🔥 perfilSnap.exists =', perfilSnap.exists);
-  console.log('🔥 perfilSnap.data() =', perfilSnap.data());
-
-  if (!perfilSnap.exists) {
-    console.warn('⚠️ Perfil no existe en Firestore → cerrando sesión y redirigiendo');
-    alert('⚠️ Perfil no existe en Firestore');
-    await auth.signOut();
-    return window.location.href = "../index.html";
-  }
-
-  const perfilData = perfilSnap.data();
-  console.log(`🛡️ Rol recuperado del perfil: "${perfilData.rol}"`);
-
-  if (!perfilData || perfilData.rol.trim() !== "guard") {
-    console.warn(`⚠️ Acceso denegado, rol inválido ("${perfilData.rol}") → cerrando sesión`);
-    alert(`Acceso denegado: rol detectado = "${perfilData.rol}". Debe ser "guard" exacto.`);
-    await auth.signOut();
-    return window.location.href = "../index.html";
-  }
-
-  console.log('✅ Rol "guard" confirmado → iniciando dashboard');
-  iniciarDashboardGuardia();
 });
 
 // ─── Inicializar Dashboard Guardia ────────────────────────────────────────
@@ -64,7 +75,7 @@ function iniciarDashboardGuardia() {
   console.log('🚀 Iniciando Dashboard de Guardia');
 
   document.getElementById("logoutBtn")?.addEventListener("click", () => {
-    console.log('🔐 Cerrar sesión solicitado por usuario');
+    console.log('🔐 Cerrar sesión solicitado');
     auth.signOut().then(() => {
       console.log('🔑 Sesión cerrada, redirigiendo a login');
       window.location.href = "../index.html";
@@ -90,4 +101,7 @@ function iniciarDashboardGuardia() {
   });
 }
 
-// El resto de tus funciones (manejarQR, cargarVisitasPendientes, procesarVisita, cargarPagosResidentes) se mantienen iguales.
+// ─── El resto de funciones quedan igual ───────────────────────────────────
+// manejarQR, cargarVisitasPendientes, procesarVisita, cargarPagosResidentes
+// No necesitan modificación y seguirán funcionando correctamente.
+
