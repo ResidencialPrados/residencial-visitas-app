@@ -18,10 +18,11 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   auth.signOut().then(() => window.location.href = '../index.html');
 });
 
-// Verificar sesión y cargar visitas
+// Verificar sesión, rol y cargar visitas
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(async user => {
     if (!user) {
+      console.warn("🔒 No hay usuario autenticado → redirigiendo a login");
       window.location.href = "../index.html";
       return;
     }
@@ -30,12 +31,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const userDoc = await db.collection('usuarios').doc(uid).get();
       const data = userDoc.data();
 
-      // REMOVIDO: Lógica de restricción por rol y estado_pago
+      console.log("✅ Usuario autenticado:", data);
 
+      if (!data || data.rol !== "resident") {
+        console.warn(`⚠️ Acceso denegado, rol inválido (${data?.rol}) → cerrando sesión`);
+        await auth.signOut();
+        window.location.href = "../index.html";
+        return;
+      }
+
+      console.log("✅ Rol 'resident' confirmado, cargando visitas");
       cargarVisitas(uid);
 
     } catch (err) {
-      console.error("Error al verificar datos del usuario:", err);
+      console.error("❌ Error al verificar datos del usuario:", err);
+      await auth.signOut();
       window.location.href = "../index.html";
     }
   });
@@ -75,7 +85,7 @@ function cargarVisitas(uid) {
         tbody.appendChild(tr);
       });
     }, err => {
-      console.error("Error cargando visitas:", err);
+      console.error("❌ Error cargando visitas:", err);
       tbody.innerHTML = `
         <tr>
           <td colspan="4" style="text-align:center; color:red;">
