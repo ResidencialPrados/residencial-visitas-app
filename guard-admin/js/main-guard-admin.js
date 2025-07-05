@@ -170,8 +170,8 @@ function cargarResidentes() {
   const nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+  // REMOVIDO: filtro de rol "resident" para reinicio de lógica
   db.collection('usuarios')
-    .where('rol','==','resident')
     .onSnapshot(snap => {
       cache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
       render(cache, buscador.value);
