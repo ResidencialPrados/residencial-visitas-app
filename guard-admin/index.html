@@ -24,7 +24,7 @@
       <nav class="nav-buttons">
         <button id="logoutBtn" class="btn">Cerrar sesión</button>
         <button id="activarQRBtn" class="btn">Activar Lector QR</button>
-        <button id="toggleHistorialBtn" class="btn">Ver Historial Completo</button>
+        <button id="pagosBtn" class="btn">Pagos</button>
       </nav>
     </header>
 
@@ -54,7 +54,7 @@
         <h2>Registro de Usuario</h2>
         <form id="crearUsuarioForm" class="form-stack" autocomplete="off">
 
-          <!-- 1) El selector de rol SIEMPRE visible -->
+          <!-- El selector de rol SIEMPRE visible -->
           <div class="field">
             <label for="rolUsuario">Rol:</label>
             <select id="rolUsuario" required>
@@ -65,7 +65,7 @@
             </select>
           </div>
 
-          <!-- 2) Todos los demás campos ocultos hasta elegir rol -->
+          <!-- Campos extra ocultos hasta elegir rol -->
           <div id="camposExtra" class="form-stack" style="display:none">
             <div class="field">
               <label for="nuevoEmail">Email:</label>
