@@ -5,21 +5,17 @@ firebase.initializeApp({
   apiKey:    "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
   authDomain:"residencial-qr.firebaseapp.com",
   projectId: "residencial-qr",
-  storageBucket: "residencial-qr.appspot.com",
-  messagingSenderId: "21258599408",
+  storageBucket:"residencial-qr.appspot.com",
+  messagingSenderId:"21258599408",
   appId:     "1:21258599408:web:81a0a5b062aac6e6bdfb35"
 });
-
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
 // — Cerrar sesión —
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-  logoutBtn.addEventListener('click', () =>
-    auth.signOut().then(() => window.location.href = '../index.html')
-  );
-}
+document.getElementById('logoutBtn')?.addEventListener('click', () =>
+  auth.signOut().then(() => window.location.href = '../index.html')
+);
 
 // — Verificar sesión y cargar dashboard —
 auth.onAuthStateChanged(user => {
@@ -31,48 +27,33 @@ auth.onAuthStateChanged(user => {
 });
 
 function inicializarDashboard() {
-  // QR Scanner
   if (document.getElementById('activarQRBtn')) manejarQR();
-
-  // Visitas pendientes
   if (document.getElementById('visitas-body')) cargarVisitasPendientes();
-
-  // Registro de usuario
   if (document.getElementById('crearUsuarioForm')) manejarCreacionUsuarios();
-
-  // Residentes y pagos
   if (document.getElementById('residents-body')) cargarResidentes();
-
-  // Botón Pagos → abre pagos.html
-  const pagosBtn = document.getElementById('pagosBtn');
-  if (pagosBtn) {
-    pagosBtn.addEventListener('click', () => {
-      window.location.href = 'pagos.html';
-    });
-  }
+  document.getElementById('pagosBtn')?.addEventListener('click', () => {
+    window.location.href = 'pagos.html';
+  });
 }
 
-// — Valida formato de email —
+// — Validar formato de email —
 function validarEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 // — QR Scanner (sin duplicar instancias) —
 function manejarQR() {
-  const btn    = document.getElementById('activarQRBtn');
-  const qrDiv  = document.getElementById('qr-reader');
-  let scanner  = null;
+  const btn   = document.getElementById('activarQRBtn');
+  const qrDiv = document.getElementById('qr-reader');
+  let scanner = null;
 
   btn.onclick = () => {
     if (scanner) {
-      scanner.stop()
-        .then(() => scanner.clear())
-        .then(() => {
-          qrDiv.innerHTML = '';
-          qrDiv.style.display = 'none';
-          scanner = null;
-        })
-        .catch(console.error);
+      scanner.stop().then(() => scanner.clear()).then(() => {
+        qrDiv.innerHTML = '';
+        qrDiv.style.display = 'none';
+        scanner = null;
+      });
     } else {
       qrDiv.innerHTML = '';
       qrDiv.style.display = 'block';
@@ -81,14 +62,12 @@ function manejarQR() {
         { facingMode: 'environment' },
         { fps: 10, qrbox: 250 },
         decoded => {
-          scanner.stop()
-            .then(() => scanner.clear())
-            .then(() => {
-              qrDiv.innerHTML = '';
-              qrDiv.style.display = 'none';
-              scanner = null;
-              window.location.href = `../process.html?id=${decoded.trim()}`;
-            });
+          scanner.stop().then(() => scanner.clear()).then(() => {
+            qrDiv.innerHTML = '';
+            qrDiv.style.display = 'none';
+            scanner = null;
+            window.location.href = `../process.html?id=${decoded.trim()}`;
+          });
         },
         err => console.warn('QR Error:', err)
       ).catch(err => {
@@ -123,17 +102,17 @@ function cargarVisitasPendientes() {
         const tr   = document.createElement('tr');
         const hora = v.createdAt?.toDate().toLocaleString() || '';
         tr.innerHTML = `
-          <td>${v.visitorName||'Sin nombre'}</td>
-          <td>${v.vehicle?.marca||''}</td>
-          <td>${v.vehicle?.color||''}</td>
-          <td>${v.vehicle?.placa||''}</td>
-          <td>${v.house||''}</td>
-          <td>${v.block||''}</td>
-          <td>${v.residentPhone||''}</td>
+          <td>${v.visitorName || 'Sin nombre'}</td>
+          <td>${v.vehicle?.marca   || ''}</td>
+          <td>${v.vehicle?.color   || ''}</td>
+          <td>${v.vehicle?.placa   || ''}</td>
+          <td>${v.house            || ''}</td>
+          <td>${v.block            || ''}</td>
+          <td>${v.residentPhone    || ''}</td>
           <td class="guard-cell">Cargando…</td>
           <td>${hora}</td>
           <td>${
-            v.status==='pendiente'
+            v.status === 'pendiente'
               ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
               : 'Ingresado'
           }</td>`;
@@ -141,12 +120,13 @@ function cargarVisitasPendientes() {
 
         // Rellenar nombre real del guardia
         if (v.guardId) {
-          db.collection('usuarios').doc(v.guardId).get().then(snap => {
-            tr.querySelector('.guard-cell').textContent =
-              snap.exists ? snap.data().nombre : 'Desconocido';
-          }).catch(() => {
-            tr.querySelector('.guard-cell').textContent = 'Desconocido';
-          });
+          db.collection('usuarios').doc(v.guardId).get()
+            .then(s => {
+              tr.querySelector('.guard-cell').textContent = s.exists ? s.data().nombre : 'Desconocido';
+            })
+            .catch(() => {
+              tr.querySelector('.guard-cell').textContent = 'Desconocido';
+            });
         }
       });
     });
@@ -155,15 +135,14 @@ function cargarVisitasPendientes() {
 // — Procesar visita —
 async function procesarVisita(id) {
   try {
-    const ref    = db.collection('visits').doc(id);
-    const snap   = await ref.get();
-    if (!snap.exists || snap.data().status==='ingresado') {
+    const ref       = db.collection('visits').doc(id);
+    const snap      = await ref.get();
+    if (!snap.exists || snap.data().status === 'ingresado') {
       return alert('Visita no encontrada o ya ingresada.');
     }
-
-    const marca     = prompt('Marca del vehículo:')||'';
-    const color     = prompt('Color del vehículo:')||'';
-    const placa     = prompt('Placa del vehículo:')||'';
+    const marca     = prompt('Marca del vehículo:') || '';
+    const color     = prompt('Color del vehículo:') || '';
+    const placa     = prompt('Placa del vehículo:') || '';
     const guardUid  = auth.currentUser.uid;
     const guardSnap = await db.collection('usuarios').doc(guardUid).get();
     const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
@@ -175,7 +154,6 @@ async function procesarVisita(id) {
       guardName,
       vehicle:      { marca, color, placa }
     });
-
     alert('Ingreso registrado con éxito.');
   } catch (e) {
     console.error(e);
@@ -183,21 +161,19 @@ async function procesarVisita(id) {
   }
 }
 
-// — Cargar y filtrar residentes —  
+// — Cargar y filtrar residentes —
 function cargarResidentes() {
   const tbody    = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
   let cache = [];
 
-  const nombres = [
-    'Enero','Febrero','Marzo','Abril','Mayo','Junio',
-    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
-  ];
+  const nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
   db.collection('usuarios')
     .where('rol','==','resident')
     .onSnapshot(snap => {
-      cache = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      cache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
       render(cache, buscador.value);
     });
 
@@ -221,44 +197,46 @@ function cargarResidentes() {
 
     const hoy      = new Date();
     const year     = hoy.getFullYear();
-    const monthIdx = hoy.getMonth(); // 0 = enero
+    const monthIdx = hoy.getMonth();
 
     filtered.forEach(r => {
-      const pagos       = r.pagos || {};  // { "2025-01": Timestamp, ... }
+      const pagos       = r.pagos || {};
       const claveActual = `${year}-${String(monthIdx+1).padStart(2,'0')}`;
-
       let pagoText;
+
       if (!(claveActual in pagos)) {
         pagoText = 'Pendiente';
       } else {
         const keys    = Object.keys(pagos).sort();
-        const lastKey = keys.at(-1);      // ex: "2025-07"
+        const lastKey = keys.at(-1);
         const [y, m]  = lastKey.split('-');
         pagoText      = `${nombres[Number(m)-1]} ${y}`;
       }
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${r.nombre||''}</td>
-        <td>${r.correo||''}</td>
-        <td>${r.telefono||''}</td>
-        <td>${r.casa||''}</td>
-        <td>${r.bloque||''}</td>
-        <td>${pagoText}</td>
-      `;
+        <td>${r.nombre   || ''}</td>
+        <td>${r.correo   || ''}</td>
+        <td>${r.telefono || ''}</td>
+        <td>${r.casa     || ''}</td>
+        <td>${r.bloque   || ''}</td>
+        <td>${pagoText}</td>`;
       tbody.appendChild(tr);
     });
   }
 }
 
-// — Crear usuarios dinámico —  
+// — Crear usuarios dinámico —
 function manejarCreacionUsuarios() {
   const form        = document.getElementById('crearUsuarioForm');
   const rolSelect   = document.getElementById('rolUsuario');
   const camposExtra = document.getElementById('camposExtra');
   const msg         = document.getElementById('crearUsuarioMsg');
+  const campoCasa   = document.getElementById('campoCasa');
+  const campoBloque = document.getElementById('campoBloque');
   if (!form || !rolSelect || !camposExtra || !msg) return;
 
+  // Inputs
   const emailInput   = document.getElementById('nuevoEmail');
   const passInput    = document.getElementById('nuevoPassword');
   const confirmInput = document.getElementById('nuevoConfirmPassword');
@@ -268,11 +246,21 @@ function manejarCreacionUsuarios() {
   const casaInput    = document.getElementById('nuevoCasa');
   const bloqueInput  = document.getElementById('nuevoBloque');
 
+  // Inicializar ocultos
   camposExtra.style.display = 'none';
-  msg.textContent = '';
+  campoCasa.style.display   = 'none';
+  campoBloque.style.display = 'none';
+  msg.textContent           = '';
 
   rolSelect.addEventListener('change', () => {
     camposExtra.style.display = rolSelect.value ? 'block' : 'none';
+    if (rolSelect.value === 'resident') {
+      campoCasa.style.display   = 'block';
+      campoBloque.style.display = 'block';
+    } else {
+      campoCasa.style.display   = 'none';
+      campoBloque.style.display = 'none';
+    }
     msg.textContent = '';
   });
 
@@ -316,22 +304,25 @@ function manejarCreacionUsuarios() {
     try {
       const { user } = await auth.createUserWithEmailAndPassword(email, pass);
       const data = {
-        UID:             user.uid,
-        correo:          email,
+        UID:            user.uid,
+        correo:         email,
         rol,
         nombre,
         identidad,
         telefono,
-        fecha_creacion:  firebase.firestore.FieldValue.serverTimestamp()
+        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       };
       if (rol === 'resident') {
         Object.assign(data, { casa, bloque, estado_pago: 'Pendiente' });
       }
       await db.collection('usuarios').doc(user.uid).set(data);
+
       msg.style.color = 'green';
       msg.textContent = 'Usuario creado con éxito.';
       form.reset();
       camposExtra.style.display = 'none';
+      campoCasa.style.display   = 'none';
+      campoBloque.style.display = 'none';
     } catch (error) {
       console.error(error);
       msg.textContent = error.code === 'auth/email-already-in-use'
