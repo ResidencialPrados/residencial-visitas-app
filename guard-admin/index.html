@@ -31,32 +31,11 @@
     <main>
       <section id="qr-reader" class="qr-section" aria-hidden="true"></section>
 
-      <section class="card">
-        <h2>Visitas Pendientes (últimas 24 h)</h2>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Nombre Visitante</th>
-              <th>Marca</th>
-              <th>Color</th>
-              <th>Placa</th>
-              <th>Casa</th>
-              <th>Bloque</th>
-              <th>Teléfono</th>
-              <th>Guardia</th>
-              <th>Hora</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody id="visitas-body">
-            <tr><td colspan="10" class="loading">Cargando…</td></tr>
-          </tbody>
-        </table>
-      </section>
+      <!-- … sección de visitas pendiente … -->
 
       <section class="card">
         <h2>Registro de Usuario</h2>
-        <form id="crearUsuarioForm" class="form-stack">
+        <form id="crearUsuarioForm" class="form-stack" autocomplete="off">
           <div class="field">
             <label for="rolUsuario">Rol:</label>
             <select id="rolUsuario" required>
@@ -67,37 +46,42 @@
             </select>
           </div>
 
-          <div class="field">
-            <label for="nuevoEmail">Email:</label>
-            <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required>
-          </div>
-          <div class="field">
-            <label for="nuevoPassword">Contraseña:</label>
-            <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required>
-          </div>
-          <div class="field">
-            <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
-            <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required>
-          </div>
-          <div class="field">
-            <label for="nuevoNombre">Nombre completo:</label>
-            <input type="text" id="nuevoNombre" required>
-          </div>
-          <div class="field">
-            <label for="nuevoIdentidad">Identidad:</label>
-            <input type="text" id="nuevoIdentidad" required>
-          </div>
-          <div class="field">
-            <label for="nuevoTelefono">Teléfono:</label>
-            <input type="text" id="nuevoTelefono" required>
-          </div>
-          <div class="field" id="campoCasa">
-            <label for="nuevoCasa">Casa:</label>
-            <input type="text" id="nuevoCasa">
-          </div>
-          <div class="field" id="campoBloque">
-            <label for="nuevoBloque">Bloque:</label>
-            <input type="text" id="nuevoBloque">
+          <div id="camposExtra" class="form-stack hidden">
+            <div class="field">
+              <label for="nuevoEmail">Email:</label>
+              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com"
+                     required autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="nuevoPassword">Contraseña:</label>
+              <input type="password" id="nuevoPassword" minlength="6"
+                     placeholder="Mín. 6 caracteres" required autocomplete="new-password">
+            </div>
+            <div class="field">
+              <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
+              <input type="password" id="nuevoConfirmPassword" minlength="6"
+                     placeholder="Repite la contraseña" required autocomplete="new-password">
+            </div>
+            <div class="field hidden" id="labelNombre">
+              <label for="nuevoNombre">Nombre completo:</label>
+              <input type="text" id="nuevoNombre">
+            </div>
+            <div class="field hidden" id="labelIdentidad">
+              <label for="nuevoIdentidad">Identidad:</label>
+              <input type="text" id="nuevoIdentidad">
+            </div>
+            <div class="field hidden" id="labelTelefono">
+              <label for="nuevoTelefono">Teléfono:</label>
+              <input type="text" id="nuevoTelefono">
+            </div>
+            <div class="field hidden" id="labelCasa">
+              <label for="nuevoCasa">Casa:</label>
+              <input type="text" id="nuevoCasa">
+            </div>
+            <div class="field hidden" id="labelBloque">
+              <label for="nuevoBloque">Bloque:</label>
+              <input type="text" id="nuevoBloque">
+            </div>
           </div>
 
           <button type="submit" class="btn-full">Crear Usuario</button>
@@ -105,28 +89,7 @@
         </form>
       </section>
 
-      <section class="card">
-        <h2>Residentes y Pagos</h2>
-        <div class="field">
-          <input type="text" id="buscarResidente" placeholder="Buscar por nombre, correo, casa, bloque o teléfono">
-        </div>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Teléfono</th>
-              <th>Casa</th>
-              <th>Bloque</th>
-              <th>Estado de Pago</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody id="residents-body">
-            <tr><td colspan="7" class="loading">Cargando…</td></tr>
-          </tbody>
-        </table>
-      </section>
+      <!-- … sección de residentes y pagos … -->
     </main>
 
     <footer class="footer">
