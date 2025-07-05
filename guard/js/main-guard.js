@@ -39,7 +39,15 @@ auth.onAuthStateChanged(async user => {
     return window.location.href = "../index.html";
   }
 
-  console.log('✅ Perfil válido → iniciando dashboard');
+  const perfilData = perfilSnap.data();
+
+  if (!perfilData || perfilData.rol !== "guard") {
+    console.warn(`⚠️ Acceso denegado, rol inválido (${perfilData?.rol}) → cerrando sesión`);
+    await auth.signOut();
+    return window.location.href = "../index.html";
+  }
+
+  console.log('✅ Rol "guard" confirmado → iniciando dashboard');
   iniciarDashboardGuardia();
 });
 
@@ -200,7 +208,6 @@ function cargarPagosResidentes() {
   const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
                  "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
-  // ✅ RESTAURADO: Filtrar solo residentes
   db.collection("usuarios")
     .where("rol", "==", "resident")
     .onSnapshot(snap => {
