@@ -13,17 +13,15 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-// —Cerrar sesión (si existe)—
+// — Cerrar sesión —
 const logoutBtn = document.getElementById('logoutBtn');
 if (logoutBtn) {
-  logoutBtn.addEventListener('click', () => {
-    auth.signOut().then(() => {
-      window.location.href = '../index.html';
-    });
-  });
+  logoutBtn.addEventListener('click', () =>
+    auth.signOut().then(() => window.location.href = '../index.html')
+  );
 }
 
-// —Verificar sesión y cargar dashboard—
+// — Verificar sesión y cargar dashboard —
 auth.onAuthStateChanged(user => {
   if (!user) {
     window.location.href = '../index.html';
@@ -33,73 +31,66 @@ auth.onAuthStateChanged(user => {
 });
 
 function inicializarDashboard() {
-  // Lector QR
-  if (document.getElementById('activarQRBtn') && document.getElementById('qr-reader')) {
-    manejarQR();
-  }
-  // Visitas pendientes
-  if (document.getElementById('visitas-body')) {
-    cargarVisitasPendientes();
-  }
-  // Residentes y pagos
-  if (document.getElementById('residents-body') && document.getElementById('buscarResidente')) {
-    cargarResidentes();
-  }
-  // Crear usuarios
-  if (document.getElementById('crearUsuarioForm')) {
-    manejarCreacionUsuarios();
-  }
+  if (document.getElementById('activarQRBtn')) manejarQR();
+  if (document.getElementById('visitas-body')) cargarVisitasPendientes();
+  if (document.getElementById('residents-body')) cargarResidentes();
+  if (document.getElementById('crearUsuarioForm')) manejarCreacionUsuarios();
 }
 
-// —Valida formato de email—
+// — Valida email —
 function validarEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// —QR Scanner—
+// — QR Scanner (sin duplicar instancias) —
 function manejarQR() {
-  const btnQR = document.getElementById('activarQRBtn');
+  const btn = document.getElementById('activarQRBtn');
   const qrDiv = document.getElementById('qr-reader');
-  let qrScanner = null;
+  let scanner = null;
 
-  btnQR.addEventListener('click', () => {
-    if (!qrScanner) {
+  btn.onclick = () => {
+    if (scanner) {
+      scanner.stop()
+        .then(() => scanner.clear())
+        .then(() => {
+          qrDiv.innerHTML = '';
+          qrDiv.style.display = 'none';
+          scanner = null;
+        })
+        .catch(console.error);
+    } else {
+      qrDiv.innerHTML = '';
       qrDiv.style.display = 'block';
-      qrScanner = new Html5Qrcode('qr-reader');
-      qrScanner.start(
+      scanner = new Html5Qrcode('qr-reader');
+      scanner.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: 250 },
         decoded => {
-          qrScanner.stop().then(() => {
-            qrDiv.innerHTML = '';
-            qrDiv.style.display = 'none';
-            qrScanner = null;
-            window.location.href = `../process.html?id=${decoded.trim()}`;
-          });
+          scanner.stop()
+            .then(() => scanner.clear())
+            .then(() => {
+              qrDiv.innerHTML = '';
+              qrDiv.style.display = 'none';
+              scanner = null;
+              window.location.href = `../process.html?id=${decoded.trim()}`;
+            });
         },
         err => console.warn('QR Error:', err)
       ).catch(err => {
-        console.error('Error al iniciar lector QR:', err);
+        console.error('Error al iniciar QR:', err);
         alert('No se pudo activar el lector QR: ' + err.message);
       });
-    } else {
-      qrScanner.stop().then(() => {
-        qrDiv.innerHTML = '';
-        qrDiv.style.display = 'none';
-        qrScanner = null;
-      });
     }
-  });
+  };
 }
 
-// —Cargar últimas 24h de visitas—
+// — Cargar visitas y mostrar siempre nombre del guardia —
 function cargarVisitasPendientes() {
   const tbody = document.getElementById('visitas-body');
-  if (!tbody) return;
+  const cutoff = new Date(Date.now() - 24*60*60*1000);
 
-  const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   db.collection('visits')
-    .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(hace24h))
+    .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(cutoff))
     .orderBy('createdAt', 'desc')
     .onSnapshot(snapshot => {
       tbody.innerHTML = '';
@@ -114,141 +105,150 @@ function cargarVisitasPendientes() {
       }
       snapshot.forEach(doc => {
         const v = doc.data();
-        const hora = v.createdAt?.toDate().toLocaleString() || '';
         const tr = document.createElement('tr');
+        const hora = v.createdAt?.toDate().toLocaleString() || '';
         tr.innerHTML = `
-          <td>${v.visitorName || 'Sin nombre'}</td>
-          <td>${v.vehicle?.marca || ''}</td>
-          <td>${v.vehicle?.color || ''}</td>
-          <td>${v.vehicle?.placa || ''}</td>
-          <td>${v.house || ''}</td>
-          <td>${v.block || ''}</td>
-          <td>${v.residentPhone || ''}</td>
-          <td class="guard-cell">${v.guardName || ''}</td>
+          <td>${v.visitorName||'Sin nombre'}</td>
+          <td>${v.vehicle?.marca||''}</td>
+          <td>${v.vehicle?.color||''}</td>
+          <td>${v.vehicle?.placa||''}</td>
+          <td>${v.house||''}</td>
+          <td>${v.block||''}</td>
+          <td>${v.residentPhone||''}</td>
+          <td class="guard-cell">Cargando…</td>
           <td>${hora}</td>
-          <td>${v.status === 'pendiente'
-            ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
-            : 'Ingresado'
+          <td>${
+            v.status==='pendiente'
+              ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
+              : 'Ingresado'
           }</td>`;
         tbody.appendChild(tr);
 
-        if (!v.guardName && v.guardId) {
-          db.collection('usuarios').doc(v.guardId).get().then(snap => {
+        // Siempre obtenemos el nombre real del guardia
+        const guardId = v.guardId;
+        if (guardId) {
+          db.collection('usuarios').doc(guardId).get().then(snap => {
             if (snap.exists) {
               tr.querySelector('.guard-cell').textContent = snap.data().nombre;
+            } else {
+              tr.querySelector('.guard-cell').textContent = 'Desconocido';
             }
+          }).catch(() => {
+            tr.querySelector('.guard-cell').textContent = 'Desconocido';
           });
+        } else {
+          tr.querySelector('.guard-cell').textContent = 'Desconocido';
         }
       });
     });
 }
 
-// —Procesar visita—
+// — Procesar visita —
 async function procesarVisita(id) {
   try {
-    const ref  = db.collection('visits').doc(id);
+    const ref = db.collection('visits').doc(id);
     const snap = await ref.get();
-    if (!snap.exists || snap.data().status === 'ingresado') {
+    if (!snap.exists||snap.data().status==='ingresado') {
       return alert('Visita no encontrada o ya ingresada.');
     }
-
-    const marca = prompt('Marca del vehículo:') || '';
-    const color = prompt('Color del vehículo:') || '';
-    const placa = prompt('Placa del vehículo:') || '';
-
+    const marca = prompt('Marca del vehículo:')||'';
+    const color = prompt('Color del vehículo:')||'';
+    const placa = prompt('Placa del vehículo:')||'';
     const guardUid = auth.currentUser.uid;
     const guardSnap = await db.collection('usuarios').doc(guardUid).get();
     const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
 
     await ref.update({
-      status:      'ingresado',
+      status:'ingresado',
       checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
-      guardId:     guardUid,
+      guardId: guardUid,
       guardName,
-      vehicle:     { marca, color, placa }
+      vehicle:{marca,color,placa}
     });
-
     alert('Ingreso registrado con éxito.');
-  } catch (e) {
+  } catch(e) {
     console.error(e);
     alert('Error al procesar la visita.');
   }
 }
 
-// —Cargar y filtrar residentes—
+// — Cargar y filtrar residentes —
 function cargarResidentes() {
   const tbody    = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
-  if (!tbody || !buscador) return;
-
   let cache = [];
   db.collection('usuarios')
-    .where('rol', '==', 'resident')
+    .where('rol','==','resident')
     .onSnapshot(snap => {
-      cache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      cache = snap.docs.map(d=>({id:d.id,...d.data()}));
       render(cache, buscador.value);
     });
+  buscador.addEventListener('input',e=>render(cache,e.target.value));
 
-  buscador.addEventListener('input', e => render(cache, e.target.value));
-
-  function render(list, filter) {
+  function render(list,filter) {
     const txt = filter.trim().toLowerCase();
-    const filtered = list.filter(r =>
+    const filtered = list.filter(r=>
       r.nombre?.toLowerCase().includes(txt) ||
       r.correo?.toLowerCase().includes(txt) ||
       String(r.casa).includes(txt) ||
       String(r.bloque).includes(txt) ||
       r.telefono?.includes(txt)
     );
-
     if (!filtered.length) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="7" style="text-align:center;">No hay residentes que coincidan</td>
-        </tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No hay residentes que coincidan</td></tr>`;
       return;
     }
-
     tbody.innerHTML = '';
-    filtered.forEach(r => {
-      const estado = r.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
+    filtered.forEach(r=>{
+      const estado = r.estado_pago==='Pagado' ? 'Pagado':'Pendiente';
       const tr = document.createElement('tr');
-      if (estado === 'Pendiente') tr.classList.add('pendiente');
+      if (estado==='Pendiente') tr.classList.add('pendiente');
       tr.innerHTML = `
-        <td>${r.nombre || ''}</td>
-        <td>${r.correo || ''}</td>
-        <td>${r.telefono || ''}</td>
-        <td>${r.casa || ''}</td>
-        <td>${r.bloque || ''}</td>
-        <td>${estado}</td>
-        <td><button onclick="registrarPago('${r.id}')">Registrar Pago</button></td>`;
+        <td>${r.nombre||''}</td>
+        <td>${r.correo||''}</td>
+        <td>${r.telefono||''}</td>
+        <td>${r.casa||''}</td>
+        <td>${r.bloque||''}</td>
+        <td class="estado-pago">${estado}</td>
+        <td>
+          ${estado==='Pendiente'
+            ? `<button class="btn-pago" data-id="${r.id}">Registrar Pago</button>`
+            : ''
+          }
+        </td>`;
       tbody.appendChild(tr);
     });
-  }
-}
-
-// —Registrar pago—
-async function registrarPago(id) {
-  if (!confirm('¿Registrar pago de este residente?')) return;
-  try {
-    await db.collection('usuarios').doc(id).update({
-      estado_pago: 'Pagado',
-      fecha_pago:  firebase.firestore.FieldValue.serverTimestamp()
+    // after rendering, attach click handlers for pago buttons
+    document.querySelectorAll('.btn-pago').forEach(btn=>{
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        if (!confirm('¿Registrar pago de este residente?')) return;
+        try {
+          await db.collection('usuarios').doc(id).update({
+            estado_pago:'Pagado',
+            fecha_pago: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          // actualizar UI inmediato
+          const row = btn.closest('tr');
+          row.querySelector('.estado-pago').textContent = 'Pagado';
+          btn.remove();
+          alert('Pago registrado con éxito.');
+        } catch(e) {
+          console.error(e);
+          alert('Error al registrar el pago.');
+        }
+      };
     });
-    alert('Pago registrado con éxito.');
-  } catch (e) {
-    console.error(e);
-    alert('Error al registrar el pago.');
   }
 }
 
-// —Crear Usuarios con campos dinámicos—
+// — Crear usuarios dinámico —
 function manejarCreacionUsuarios() {
   const form        = document.getElementById('crearUsuarioForm');
   const rolSelect   = document.getElementById('rolUsuario');
   const camposExtra = document.getElementById('camposExtra');
   const msg         = document.getElementById('crearUsuarioMsg');
-  if (!form || !rolSelect || !camposExtra || !msg) return;
+  if (!form||!rolSelect||!camposExtra||!msg) return;
 
   const emailInput   = document.getElementById('nuevoEmail');
   const passInput    = document.getElementById('nuevoPassword');
@@ -258,87 +258,67 @@ function manejarCreacionUsuarios() {
   const telInput     = document.getElementById('nuevoTelefono');
   const casaInput    = document.getElementById('nuevoCasa');
   const bloqueInput  = document.getElementById('nuevoBloque');
-  const campoCasa    = document.getElementById('campoCasa');
-  const campoBloque  = document.getElementById('campoBloque');
 
-  // Al inicio sólo se ve selector de rol
+  // solo mostrar rol al inicio
   camposExtra.style.display = 'none';
-  if (campoCasa) campoCasa.style.display = 'none';
-  if (campoBloque) campoBloque.style.display = 'none';
   msg.textContent = '';
 
-  rolSelect.addEventListener('change', () => {
-    camposExtra.style.display = rolSelect.value ? 'block' : 'none';
-    if (rolSelect.value === 'resident' && campoCasa && campoBloque) {
-      campoCasa.style.display = 'block';
-      campoBloque.style.display = 'block';
-    } else {
-      if (campoCasa) campoCasa.style.display = 'none';
-      if (campoBloque) campoBloque.style.display = 'none';
-    }
-    msg.textContent = '';
+  rolSelect.addEventListener('change',()=>{
+    camposExtra.style.display = rolSelect.value ? 'block':'none';
+    msg.textContent='';
   });
 
-  form.addEventListener('submit', async e => {
+  form.addEventListener('submit',async e=>{
     e.preventDefault();
-    msg.style.color = 'red';
-    msg.textContent = '';
+    msg.style.color='red';
+    msg.textContent='';
 
     const rol       = rolSelect.value;
-    const email     = emailInput?.value.trim() || '';
-    const password  = passInput?.value || '';
-    const password2 = confirmInput?.value || '';
-    const nombre    = nombreInput?.value.trim() || '';
-    const identidad = idInput?.value.trim() || '';
-    const telefono  = telInput?.value.trim() || '';
-    const casa      = casaInput?.value.trim() || '';
-    const bloque    = bloqueInput?.value.trim() || '';
+    const email     = emailInput.value.trim();
+    const pass      = passInput.value;
+    const pass2     = confirmInput.value;
+    const nombre    = nombreInput.value.trim();
+    const identidad = idInput.value.trim();
+    const telefono  = telInput.value.trim();
+    const casa      = casaInput.value.trim();
+    const bloque    = bloqueInput.value.trim();
 
-    if (!rol) {
-      msg.textContent = 'Selecciona un rol.'; return;
+    if(!rol){ msg.textContent='Selecciona un rol.'; return; }
+    if(!validarEmail(email)){ msg.textContent='Ingresa un correo válido.'; return; }
+    if(pass.length<6){ msg.textContent='La contraseña debe tener al menos 6 caracteres.'; return; }
+    if(pass!==pass2){ msg.textContent='Las contraseñas no coinciden.'; return; }
+    if((rol==='guard'||rol==='guard_admin')&&(!nombre||!identidad||!telefono)){
+      msg.textContent='Completa nombre, identidad y teléfono.'; return;
     }
-    if (!validarEmail(email)) {
-      msg.textContent = 'Ingresa un correo válido.'; return;
-    }
-    if (password.length < 6) {
-      msg.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return;
-    }
-    if (password !== password2) {
-      msg.textContent = 'Las contraseñas no coinciden.'; return;
-    }
-    if ((rol === 'guard' || rol === 'guard_admin') && (!nombre || !identidad || !telefono)) {
-      msg.textContent = 'Completa nombre, identidad y teléfono.'; return;
-    }
-    if (rol === 'resident' && (!nombre || !identidad || !telefono || !casa || !bloque)) {
-      msg.textContent = 'Completa todos los campos para residentes.'; return;
+    if(rol==='resident'&&(!nombre||!identidad||!telefono||!casa||!bloque)){
+      msg.textContent='Completa todos los campos para residentes.'; return;
     }
 
-    msg.textContent = 'Creando usuario…';
-    try {
-      const { user } = await auth.createUserWithEmailAndPassword(email, password);
+    msg.textContent='Creando usuario…';
+    try{
+      const {user} = await auth.createUserWithEmailAndPassword(email, pass);
       const data = {
-        UID:            user.uid,
-        correo:         email,
+        UID: user.uid,
+        correo: email,
         rol,
         nombre,
         identidad,
         telefono,
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       };
-      if (rol === 'resident') {
-        Object.assign(data, { casa, bloque, estado_pago: 'Pendiente' });
+      if(rol==='resident'){
+        Object.assign(data, { casa, bloque, estado_pago:'Pendiente' });
       }
       await db.collection('usuarios').doc(user.uid).set(data);
-
-      msg.style.color = 'green';
-      msg.textContent = 'Usuario creado con éxito.';
+      msg.style.color='green';
+      msg.textContent='Usuario creado con éxito.';
       form.reset();
-      camposExtra.style.display = 'none';
-    } catch (error) {
+      camposExtra.style.display='none';
+    }catch(error){
       console.error(error);
-      msg.textContent = error.code === 'auth/email-already-in-use'
+      msg.textContent = error.code==='auth/email-already-in-use'
         ? 'El correo ya está registrado.'
-        : 'Error: ' + error.message;
+        : 'Error: '+error.message;
     }
   });
 }
