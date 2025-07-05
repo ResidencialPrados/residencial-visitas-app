@@ -29,7 +29,7 @@
     </header>
 
     <main>
-      <!-- QR Scanner -->
+      <!-- Scanner QR -->
       <section id="qr-reader" class="qr-section" aria-hidden="true"></section>
 
       <!-- Visitas Pendientes -->
@@ -53,49 +53,47 @@
       <section class="card">
         <h2>Registro de Usuario</h2>
         <form id="crearUsuarioForm" class="form-stack" autocomplete="off">
-          <div class="field">
-            <label for="rolUsuario">Rol:</label>
-            <select id="rolUsuario" required>
-              <option value="">Seleccione rol</option>
-              <option value="guard">Guardia Común</option>
-              <option value="guard_admin">Guardia Administrador</option>
-              <option value="resident">Residente</option>
-            </select>
-          </div>
+          <!-- SOLO ESTE DIV aparece tras elegir rol -->
+          <div id="camposExtra" class="form-stack" style="display:none">
+            <div class="field">
+              <label for="rolUsuario">Rol:</label>
+              <select id="rolUsuario" required>
+                <option value="">Seleccione rol</option>
+                <option value="guard">Guardia Común</option>
+                <option value="guard_admin">Guardia Administrador</option>
+                <option value="resident">Residente</option>
+              </select>
+            </div>
 
-          <div id="camposExtra" class="form-stack hidden">
             <div class="field">
               <label for="nuevoEmail">Email:</label>
-              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com"
-                     required autocomplete="off">
+              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required autocomplete="off">
             </div>
             <div class="field">
               <label for="nuevoPassword">Contraseña:</label>
-              <input type="password" id="nuevoPassword" minlength="6"
-                     placeholder="Mín. 6 caracteres" required autocomplete="new-password">
+              <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required autocomplete="new-password">
             </div>
             <div class="field">
               <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
-              <input type="password" id="nuevoConfirmPassword" minlength="6"
-                     placeholder="Repite la contraseña" required autocomplete="new-password">
+              <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required autocomplete="new-password">
             </div>
-            <div class="field hidden" id="labelNombre">
+            <div class="field">
               <label for="nuevoNombre">Nombre completo:</label>
-              <input type="text" id="nuevoNombre">
+              <input type="text" id="nuevoNombre" required>
             </div>
-            <div class="field hidden" id="labelIdentidad">
+            <div class="field">
               <label for="nuevoIdentidad">Identidad:</label>
-              <input type="text" id="nuevoIdentidad">
+              <input type="text" id="nuevoIdentidad" required>
             </div>
-            <div class="field hidden" id="labelTelefono">
+            <div class="field">
               <label for="nuevoTelefono">Teléfono:</label>
-              <input type="text" id="nuevoTelefono">
+              <input type="text" id="nuevoTelefono" required>
             </div>
-            <div class="field hidden" id="labelCasa">
+            <div class="field" id="campoCasa" style="display:none">
               <label for="nuevoCasa">Casa:</label>
               <input type="text" id="nuevoCasa">
             </div>
-            <div class="field hidden" id="labelBloque">
+            <div class="field" id="campoBloque" style="display:none">
               <label for="nuevoBloque">Bloque:</label>
               <input type="text" id="nuevoBloque">
             </div>
@@ -110,8 +108,7 @@
       <section class="card">
         <h2>Residentes y Pagos</h2>
         <div class="field">
-          <input type="text" id="buscarResidente"
-                 placeholder="Buscar por nombre, correo, casa, bloque o teléfono">
+          <input type="text" id="buscarResidente" placeholder="Buscar por nombre, correo, casa, bloque o teléfono">
         </div>
         <table class="table">
           <thead>
