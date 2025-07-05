@@ -17,15 +17,36 @@ document.getElementById('logoutBtn')?.addEventListener('click', () =>
   auth.signOut().then(() => window.location.href = '../index.html')
 );
 
-// — Verificar sesión y cargar dashboard —
-auth.onAuthStateChanged(user => {
+// — Verificar sesión y rol antes de cargar dashboard —
+auth.onAuthStateChanged(async user => {
   if (!user) {
+    console.warn("🔒 No hay usuario autenticado → redirigiendo a login");
     window.location.href = '../index.html';
-  } else {
+    return;
+  }
+
+  try {
+    const userDoc = await db.collection('usuarios').doc(user.uid).get();
+    const userData = userDoc.data();
+
+    if (!userData || userData.rol !== 'guard_admin') {
+      console.warn(`⚠️ Acceso denegado, rol inválido (${userData?.rol}) → cerrando sesión`);
+      await auth.signOut();
+      window.location.href = '../index.html';
+      return;
+    }
+
+    console.log("✅ Usuario guard_admin confirmado, cargando dashboard");
     inicializarDashboard();
+
+  } catch (error) {
+    console.error("❌ Error verificando rol del usuario:", error);
+    await auth.signOut();
+    window.location.href = '../index.html';
   }
 });
 
+// — Inicializar Dashboard —
 function inicializarDashboard() {
   if (document.getElementById('activarQRBtn')) manejarQR();
   if (document.getElementById('visitas-body')) cargarVisitasPendientes();
@@ -78,7 +99,7 @@ function manejarQR() {
   };
 }
 
-// — Cargar visitas y mostrar siempre nombre del guardia —
+// — Cargar visitas —
 function cargarVisitasPendientes() {
   const tbody  = document.getElementById('visitas-body');
   const cutoff = new Date(Date.now() - 24*60*60*1000);
@@ -118,7 +139,6 @@ function cargarVisitasPendientes() {
           }</td>`;
         tbody.appendChild(tr);
 
-        // Rellenar nombre real del guardia
         if (v.guardId) {
           db.collection('usuarios').doc(v.guardId).get()
             .then(s => {
@@ -132,7 +152,7 @@ function cargarVisitasPendientes() {
     });
 }
 
-// — Procesar visita —
+// — Procesar Visita —
 async function procesarVisita(id) {
   try {
     const ref       = db.collection('visits').doc(id);
@@ -150,7 +170,7 @@ async function procesarVisita(id) {
     await ref.update({
       status:       'ingresado',
       checkInTime:  firebase.firestore.FieldValue.serverTimestamp(),
-      guardId:      guardUid,      // ← CORRECCIÓN
+      guardId:      guardUid,
       guardName,
       vehicle:      { marca, color, placa }
     });
@@ -161,7 +181,7 @@ async function procesarVisita(id) {
   }
 }
 
-// — Cargar y filtrar residentes —
+// — Cargar residentes filtrados —
 function cargarResidentes() {
   const tbody    = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
@@ -170,8 +190,8 @@ function cargarResidentes() {
   const nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-  // REMOVIDO: filtro de rol "resident" para reinicio de lógica
   db.collection('usuarios')
+    .where('rol', '==', 'resident')
     .onSnapshot(snap => {
       cache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
       render(cache, buscador.value);
@@ -236,7 +256,6 @@ function manejarCreacionUsuarios() {
   const campoBloque = document.getElementById('campoBloque');
   if (!form || !rolSelect || !camposExtra || !msg) return;
 
-  // Inputs
   const emailInput   = document.getElementById('nuevoEmail');
   const passInput    = document.getElementById('nuevoPassword');
   const confirmInput = document.getElementById('nuevoConfirmPassword');
@@ -246,7 +265,6 @@ function manejarCreacionUsuarios() {
   const casaInput    = document.getElementById('nuevoCasa');
   const bloqueInput  = document.getElementById('nuevoBloque');
 
-  // Inicializar ocultos
   camposExtra.style.display = 'none';
   campoCasa.style.display   = 'none';
   campoBloque.style.display = 'none';
