@@ -5,7 +5,7 @@ firebase.initializeApp({
   apiKey:    "AIzaSyAkKV3Vp0u9NGVRlWbx22XDvoMnVoFpItI",
   authDomain:"residencial-qr.firebaseapp.com",
   projectId: "residencial-qr",
-  storageBucket: "residencial-qr.appspot.com",
+  storageBucket:"residencial-qr.appspot.com",
   messagingSenderId: "21258599408",
   appId:     "1:21258599408:web:810a5b062aac6e6bdfb35"
 });
@@ -17,12 +17,27 @@ document.getElementById('backBtn').addEventListener('click', () => {
   window.location.href = 'index.html';
 });
 
-// — Verificar sesión —
-auth.onAuthStateChanged(user => {
+// — Verificar sesión y rol —
+auth.onAuthStateChanged(async user => {
   if (!user) {
     window.location.href = 'index.html';
-  } else {
+    return;
+  }
+  try {
+    const userDoc = await db.collection('usuarios').doc(user.uid).get();
+    const data = userDoc.data();
+    if (!data || data.rol !== 'guard_admin') {
+      console.warn(`⚠️ Acceso denegado, rol inválido (${data?.rol}) → cerrando sesión`);
+      await auth.signOut();
+      window.location.href = 'index.html';
+      return;
+    }
+    console.log("✅ Usuario guard_admin confirmado, cargando panel de pagos");
     cargarPanelPagos();
+  } catch (err) {
+    console.error("❌ Error verificando rol:", err);
+    await auth.signOut();
+    window.location.href = 'index.html';
   }
 });
 
@@ -64,10 +79,8 @@ function cargarPanelPagos() {
     tbody.innerHTML = '';
 
     filtered.forEach(r => {
-      const pagos = r.pagos || {}; // { "2025-01": Timestamp, ... }
-
-      // Último pago registrado
-      const keys       = Object.keys(pagos).sort();
+      const pagos = r.pagos || {};
+      const keys = Object.keys(pagos).sort();
       const ultimoPago = keys.length
         ? (() => {
             const [y, m] = keys.at(-1).split('-');
@@ -75,7 +88,6 @@ function cargarPanelPagos() {
           })()
         : '—';
 
-      // Meses pendientes: todos los de enero a diciembre no pagados
       const pendientes = [];
       const year = new Date().getFullYear();
       for (let m = 0; m < 12; m++) {
@@ -101,7 +113,6 @@ function cargarPanelPagos() {
         </tr>`;
     });
 
-    // Attach handlers
     document.querySelectorAll('.btn-aplicar').forEach(btn => {
       btn.onclick = () => openPagoModal(btn.dataset.id);
     });
@@ -110,19 +121,18 @@ function cargarPanelPagos() {
 
 // — Modal de selección de meses y registro de pagos —
 async function openPagoModal(userId) {
-  const ref  = db.collection('usuarios').doc(userId);
+  const ref = db.collection('usuarios').doc(userId);
   const snap = await ref.get();
   if (!snap.exists) return alert('Residente no encontrado.');
 
-  const datos  = snap.data();
-  const pagos  = datos.pagos || {};
+  const datos = snap.data();
+  const pagos = datos.pagos || {};
   const nombres = [
     'Enero','Febrero','Marzo','Abril','Mayo','Junio',
     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
   ];
   const year = new Date().getFullYear();
 
-  // Lista de todos los meses no pagados
   const disponibles = [];
   for (let m = 0; m < 12; m++) {
     const key = `${year}-${String(m+1).padStart(2,'0')}`;
@@ -134,7 +144,6 @@ async function openPagoModal(userId) {
     return alert('Este residente ya está al día para todo el año.');
   }
 
-  // Construir modal
   const overlay = document.createElement('div');
   overlay.id = 'mesesOverlay';
   overlay.innerHTML = `
@@ -160,11 +169,10 @@ async function openPagoModal(userId) {
   document.getElementById('cancelMeses').onclick = () => overlay.remove();
   document.getElementById('okMeses').onclick = async () => {
     const sel = Array.from(document.getElementsByName('mes'))
-                   .filter(i => i.checked)
-                   .map(i => i.value);
+                     .filter(i => i.checked)
+                     .map(i => i.value);
     if (!sel.length) return alert('Seleccione al menos un mes.');
 
-    // Preparar actualización evitando duplicados
     const upd = {};
     sel.forEach(key => {
       if (!(key in pagos)) {
@@ -176,7 +184,6 @@ async function openPagoModal(userId) {
       return alert('Esos meses ya estaban registrados.');
     }
 
-    // Aplicar en Firestore
     try {
       await ref.update(upd);
       alert('¡Gracias! Su pago fortalece la seguridad.');
