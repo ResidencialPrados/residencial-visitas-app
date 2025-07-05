@@ -13,7 +13,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" defer></script>
-
   <!-- QR Scanner -->
   <script src="https://unpkg.com/html5-qrcode" defer></script>
 </head>
@@ -41,16 +40,9 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Nombre Visitante</th>
-              <th>Marca</th>
-              <th>Color</th>
-              <th>Placa</th>
-              <th>Casa</th>
-              <th>Bloque</th>
-              <th>Teléfono</th>
-              <th>Guardia</th>
-              <th>Hora</th>
-              <th>Acción</th>
+              <th>Nombre Visitante</th><th>Marca</th><th>Color</th>
+              <th>Placa</th><th>Casa</th><th>Bloque</th>
+              <th>Teléfono</th><th>Guardia</th><th>Hora</th><th>Acción</th>
             </tr>
           </thead>
           <tbody id="visitas-body">
@@ -63,8 +55,7 @@
       <section class="card">
         <h2>Registro de Usuario</h2>
         <form id="crearUsuarioForm" class="form-stack" autocomplete="off">
-
-          <!-- 1) Selector de rol SIEMPRE visible -->
+          <!-- 1) Selector de rol siempre visible -->
           <div class="field">
             <label for="rolUsuario">Rol:</label>
             <select id="rolUsuario" required>
@@ -75,19 +66,19 @@
             </select>
           </div>
 
-          <!-- 2) Campos extra, ocultos hasta elegir rol -->
+          <!-- 2) Todos los campos ocultos hasta elegir un rol -->
           <div id="camposExtra" class="form-stack" style="display:none">
             <div class="field">
               <label for="nuevoEmail">Email:</label>
-              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required autocomplete="off">
+              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required>
             </div>
             <div class="field">
               <label for="nuevoPassword">Contraseña:</label>
-              <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required autocomplete="new-password">
+              <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required>
             </div>
             <div class="field">
               <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
-              <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required autocomplete="new-password">
+              <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required>
             </div>
             <div class="field">
               <label for="nuevoNombre">Nombre completo:</label>
@@ -101,6 +92,7 @@
               <label for="nuevoTelefono">Teléfono:</label>
               <input type="text" id="nuevoTelefono" required>
             </div>
+            <!-- campos para residentes -->
             <div class="field" id="campoCasa" style="display:none">
               <label for="nuevoCasa">Casa:</label>
               <input type="text" id="nuevoCasa">
@@ -127,12 +119,8 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Teléfono</th>
-              <th>Casa</th>
-              <th>Bloque</th>
-              <th>Pago</th>
+              <th>Nombre</th><th>Correo</th><th>Teléfono</th>
+              <th>Casa</th><th>Bloque</th><th>Pago</th>
             </tr>
           </thead>
           <tbody id="residents-body">
@@ -152,29 +140,17 @@
   <!-- Principal JS -->
   <script src="js/main-guard-admin.js" defer></script>
 
-  <!-- Listeners para Pagos, Historial y SW -->
+  <!-- Registrar Service Worker, Pagos e Historial -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Botón Pagos → pagos.html
-      const pagosBtn = document.getElementById('pagosBtn');
-      if (pagosBtn) {
-        pagosBtn.addEventListener('click', () => {
-          window.location.href = 'pagos.html';
-        });
-      }
-
-      // Botón Historial → historial.html
-      const histBtn = document.getElementById('toggleHistorialBtn');
-      if (histBtn) {
-        histBtn.addEventListener('click', () => {
-          window.location.href = 'historial.html';
-        });
-      }
-
-      // Registrar Service Worker
+      document.getElementById('pagosBtn')?.addEventListener('click', () => {
+        window.location.href = 'pagos.html';
+      });
+      document.getElementById('toggleHistorialBtn')?.addEventListener('click', () => {
+        window.location.href = 'historial.html';
+      });
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker
-          .register('js/service-worker.js')
+        navigator.serviceWorker.register('js/service-worker.js', { scope: './' })
           .then(() => console.log('SW registrado correctamente'))
           .catch(err => console.error('Error al registrar SW:', err));
       }
