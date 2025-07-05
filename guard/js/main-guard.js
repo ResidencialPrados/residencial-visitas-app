@@ -20,14 +20,12 @@ auth.onAuthStateChanged(async user => {
     return window.location.href = "../index.html";
   }
 
-  // Leer perfil en Firestore
   const perfilRef  = db.collection("usuarios").doc(user.uid);
   let perfilSnap;
   try {
     perfilSnap = await perfilRef.get();
   } catch (err) {
     console.error('❌ Error leyendo perfil Firestore:', err);
-    // opcional: forzamos logout
     await auth.signOut();
     return window.location.href = "../index.html";
   }
@@ -41,8 +39,6 @@ auth.onAuthStateChanged(async user => {
     return window.location.href = "../index.html";
   }
 
-  // REMOVIDO: Validación de rol para reinicio de lógica Ledin
-
   console.log('✅ Perfil válido → iniciando dashboard');
   iniciarDashboardGuardia();
 });
@@ -51,7 +47,6 @@ auth.onAuthStateChanged(async user => {
 function iniciarDashboardGuardia() {
   console.log('🚀 iniciarDashboardGuardia');
 
-  // Botón Cerrar sesión
   document.getElementById("logoutBtn")
     .addEventListener("click", () => {
       console.log('🔐 Cerrar sesión solicitado');
@@ -61,12 +56,9 @@ function iniciarDashboardGuardia() {
       });
     });
 
-  // QR Scanner
   if (document.getElementById("activarQRBtn")) {
     manejarQR();
   }
-
-  // Cargar vistas
   if (document.getElementById("visitas-body")) {
     cargarVisitasPendientes();
   }
@@ -74,7 +66,6 @@ function iniciarDashboardGuardia() {
     cargarPagosResidentes();
   }
 
-  // Ir a pagos
   document.getElementById("pagosBtn")?.addEventListener("click", () => {
     window.location.href = "pagos.html";
   });
@@ -159,7 +150,6 @@ function cargarVisitasPendientes() {
           }</td>`;
         tbody.appendChild(tr);
 
-        // Si no vino guardName, lo rellenamos desde guardId
         if (v.guardId && !v.guardName) {
           db.collection("usuarios").doc(v.guardId).get()
             .then(s => {
@@ -210,8 +200,9 @@ function cargarPagosResidentes() {
   const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
                  "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
-  // REMOVIDO: Filtro por rol para reinicio de lógica Ledin
+  // ✅ RESTAURADO: Filtrar solo residentes
   db.collection("usuarios")
+    .where("rol", "==", "resident")
     .onSnapshot(snap => {
       console.log('📊 Snapshot residentes size =', snap.size);
       cache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
