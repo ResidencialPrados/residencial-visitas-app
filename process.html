@@ -52,7 +52,7 @@
     auth.onAuthStateChanged(async user => {
       if (!user) {
         console.warn("🔒 No hay usuario autenticado → redirigiendo a login");
-        window.location.href = "../index.html";
+        window.location.href = "/residencial-visitas-app/index.html";
         return;
       }
 
@@ -65,7 +65,7 @@
         if (!userData || (userData.rol !== "guard" && userData.rol !== "guard_admin")) {
           console.warn(`⚠️ Acceso denegado, rol inválido (${userData?.rol}) → cerrando sesión`);
           await auth.signOut();
-          window.location.href = "../index.html";
+          window.location.href = "/residencial-visitas-app/index.html";
           return;
         }
 
@@ -141,15 +141,15 @@
         const rol = userDoc.exists ? userDoc.data().rol : '';
 
         if (rol === 'guard_admin') {
-          window.location.href = "../guard-admin/index.html";
+          window.location.href = "/residencial-visitas-app/guard-admin/index.html";
         } else if (rol === 'guard') {
-          window.location.href = "../guard/index.html";
+          window.location.href = "/residencial-visitas-app/guard/index.html";
         } else {
-          window.location.href = "../index.html";
+          window.location.href = "/residencial-visitas-app/index.html";
         }
       } catch (err) {
         console.error("❌ Error obteniendo el rol:", err);
-        window.location.href = "../index.html";
+        window.location.href = "/residencial-visitas-app/index.html";
       }
     }
   </script>
