@@ -13,14 +13,17 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-// — Cerrar sesión —
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  auth.signOut().then(() => {
-    window.location.href = '../index.html';
+// —Cerrar sesión (si existe)—
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', () => {
+    auth.signOut().then(() => {
+      window.location.href = '../index.html';
+    });
   });
-});
+}
 
-// — Verificar sesión y cargar dashboard —
+// —Verificar sesión y cargar dashboard—
 auth.onAuthStateChanged(user => {
   if (!user) {
     window.location.href = '../index.html';
@@ -30,19 +33,30 @@ auth.onAuthStateChanged(user => {
 });
 
 function inicializarDashboard() {
-  manejarQR();
-  cargarVisitasPendientes();
-  cargarResidentes();
-  manejarCreacionUsuarios();
+  // Lector QR
+  if (document.getElementById('activarQRBtn') && document.getElementById('qr-reader')) {
+    manejarQR();
+  }
+  // Visitas pendientes
+  if (document.getElementById('visitas-body')) {
+    cargarVisitasPendientes();
+  }
+  // Residentes y pagos
+  if (document.getElementById('residents-body') && document.getElementById('buscarResidente')) {
+    cargarResidentes();
+  }
+  // Crear usuarios
+  if (document.getElementById('crearUsuarioForm')) {
+    manejarCreacionUsuarios();
+  }
 }
 
-// — Valida formato de email —
+// —Valida formato de email—
 function validarEmail(email) {
-  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return re.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// — QR Scanner —
+// —QR Scanner—
 function manejarQR() {
   const btnQR = document.getElementById('activarQRBtn');
   const qrDiv = document.getElementById('qr-reader');
@@ -55,12 +69,12 @@ function manejarQR() {
       qrScanner.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: 250 },
-        decodedText => {
+        decoded => {
           qrScanner.stop().then(() => {
             qrDiv.innerHTML = '';
             qrDiv.style.display = 'none';
             qrScanner = null;
-            window.location.href = `../process.html?id=${decodedText.trim()}`;
+            window.location.href = `../process.html?id=${decoded.trim()}`;
           });
         },
         err => console.warn('QR Error:', err)
@@ -78,11 +92,12 @@ function manejarQR() {
   });
 }
 
-// — Cargar últimas 24h de visitas —
+// —Cargar últimas 24h de visitas—
 function cargarVisitasPendientes() {
-  const tbody   = document.getElementById('visitas-body');
-  const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const tbody = document.getElementById('visitas-body');
+  if (!tbody) return;
 
+  const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   db.collection('visits')
     .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(hace24h))
     .orderBy('createdAt', 'desc')
@@ -98,10 +113,9 @@ function cargarVisitasPendientes() {
         return;
       }
       snapshot.forEach(doc => {
-        const v    = doc.data();
+        const v = doc.data();
         const hora = v.createdAt?.toDate().toLocaleString() || '';
-        const tr   = document.createElement('tr');
-
+        const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${v.visitorName || 'Sin nombre'}</td>
           <td>${v.vehicle?.marca || ''}</td>
@@ -112,15 +126,12 @@ function cargarVisitasPendientes() {
           <td>${v.residentPhone || ''}</td>
           <td class="guard-cell">${v.guardName || ''}</td>
           <td>${hora}</td>
-          <td>
-            ${v.status === 'pendiente'
-              ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
-              : 'Ingresado'
-            }
-          </td>`;
+          <td>${v.status === 'pendiente'
+            ? `<button onclick="procesarVisita('${doc.id}')">Registrar</button>`
+            : 'Ingresado'
+          }</td>`;
         tbody.appendChild(tr);
 
-        // Si guardName no viene, lo traemos por separado
         if (!v.guardName && v.guardId) {
           db.collection('usuarios').doc(v.guardId).get().then(snap => {
             if (snap.exists) {
@@ -132,10 +143,10 @@ function cargarVisitasPendientes() {
     });
 }
 
-// — Procesar visita —
-async function procesarVisita(visitaId) {
+// —Procesar visita—
+async function procesarVisita(id) {
   try {
-    const ref  = db.collection('visits').doc(visitaId);
+    const ref  = db.collection('visits').doc(id);
     const snap = await ref.get();
     if (!snap.exists || snap.data().status === 'ingresado') {
       return alert('Visita no encontrada o ya ingresada.');
@@ -145,7 +156,7 @@ async function procesarVisita(visitaId) {
     const color = prompt('Color del vehículo:') || '';
     const placa = prompt('Placa del vehículo:') || '';
 
-    const guardUid  = auth.currentUser.uid;
+    const guardUid = auth.currentUser.uid;
     const guardSnap = await db.collection('usuarios').doc(guardUid).get();
     const guardName = guardSnap.exists ? guardSnap.data().nombre : 'Desconocido';
 
@@ -164,12 +175,13 @@ async function procesarVisita(visitaId) {
   }
 }
 
-// — Cargar y filtrar residentes —
+// —Cargar y filtrar residentes—
 function cargarResidentes() {
   const tbody    = document.getElementById('residents-body');
   const buscador = document.getElementById('buscarResidente');
-  let cache      = [];
+  if (!tbody || !buscador) return;
 
+  let cache = [];
   db.collection('usuarios')
     .where('rol', '==', 'resident')
     .onSnapshot(snap => {
@@ -180,7 +192,7 @@ function cargarResidentes() {
   buscador.addEventListener('input', e => render(cache, e.target.value));
 
   function render(list, filter) {
-    const txt      = filter.trim().toLowerCase();
+    const txt = filter.trim().toLowerCase();
     const filtered = list.filter(r =>
       r.nombre?.toLowerCase().includes(txt) ||
       r.correo?.toLowerCase().includes(txt) ||
@@ -200,7 +212,7 @@ function cargarResidentes() {
     tbody.innerHTML = '';
     filtered.forEach(r => {
       const estado = r.estado_pago === 'Pagado' ? 'Pagado' : 'Pendiente';
-      const tr     = document.createElement('tr');
+      const tr = document.createElement('tr');
       if (estado === 'Pendiente') tr.classList.add('pendiente');
       tr.innerHTML = `
         <td>${r.nombre || ''}</td>
@@ -215,7 +227,7 @@ function cargarResidentes() {
   }
 }
 
-// — Registrar pago —
+// —Registrar pago—
 async function registrarPago(id) {
   if (!confirm('¿Registrar pago de este residente?')) return;
   try {
@@ -230,12 +242,13 @@ async function registrarPago(id) {
   }
 }
 
-// — Crear Usuarios con campos dinámicos —
+// —Crear Usuarios con campos dinámicos—
 function manejarCreacionUsuarios() {
   const form        = document.getElementById('crearUsuarioForm');
   const rolSelect   = document.getElementById('rolUsuario');
   const camposExtra = document.getElementById('camposExtra');
   const msg         = document.getElementById('crearUsuarioMsg');
+  if (!form || !rolSelect || !camposExtra || !msg) return;
 
   const emailInput   = document.getElementById('nuevoEmail');
   const passInput    = document.getElementById('nuevoPassword');
@@ -248,25 +261,21 @@ function manejarCreacionUsuarios() {
   const campoCasa    = document.getElementById('campoCasa');
   const campoBloque  = document.getElementById('campoBloque');
 
-  // Al inicio solo muestro el selector de rol
+  // Al inicio sólo se ve selector de rol
   camposExtra.style.display = 'none';
-  campoCasa.style.display   = 'none';
-  campoBloque.style.display = 'none';
-  msg.textContent           = '';
+  if (campoCasa) campoCasa.style.display = 'none';
+  if (campoBloque) campoBloque.style.display = 'none';
+  msg.textContent = '';
 
   rolSelect.addEventListener('change', () => {
-    // Muestro todo el bloque de campos tras elegir rol
     camposExtra.style.display = rolSelect.value ? 'block' : 'none';
-
-    // Solo para "Residente" activo Casa/Bloque
-    if (rolSelect.value === 'resident') {
-      campoCasa.style.display   = 'block';
+    if (rolSelect.value === 'resident' && campoCasa && campoBloque) {
+      campoCasa.style.display = 'block';
       campoBloque.style.display = 'block';
     } else {
-      campoCasa.style.display   = 'none';
-      campoBloque.style.display = 'none';
+      if (campoCasa) campoCasa.style.display = 'none';
+      if (campoBloque) campoBloque.style.display = 'none';
     }
-
     msg.textContent = '';
   });
 
@@ -276,40 +285,32 @@ function manejarCreacionUsuarios() {
     msg.textContent = '';
 
     const rol       = rolSelect.value;
-    const email     = emailInput.value.trim();
-    const password  = passInput.value;
-    const password2 = confirmInput.value;
-    const nombre    = nombreInput.value.trim();
-    const identidad = idInput.value.trim();
-    const telefono  = telInput.value.trim();
-    const casa      = casaInput.value.trim();
-    const bloque    = bloqueInput.value.trim();
+    const email     = emailInput?.value.trim() || '';
+    const password  = passInput?.value || '';
+    const password2 = confirmInput?.value || '';
+    const nombre    = nombreInput?.value.trim() || '';
+    const identidad = idInput?.value.trim() || '';
+    const telefono  = telInput?.value.trim() || '';
+    const casa      = casaInput?.value.trim() || '';
+    const bloque    = bloqueInput?.value.trim() || '';
 
     if (!rol) {
-      msg.textContent = 'Selecciona un rol.';
-      return;
+      msg.textContent = 'Selecciona un rol.'; return;
     }
     if (!validarEmail(email)) {
-      msg.textContent = 'Ingresa un correo válido.';
-      return;
+      msg.textContent = 'Ingresa un correo válido.'; return;
     }
     if (password.length < 6) {
-      msg.textContent = 'La contraseña debe tener al menos 6 caracteres.';
-      return;
+      msg.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return;
     }
     if (password !== password2) {
-      msg.textContent = 'Las contraseñas no coinciden.';
-      return;
+      msg.textContent = 'Las contraseñas no coinciden.'; return;
     }
-    if ((rol === 'guard' || rol === 'guard_admin') &&
-        (!nombre || !identidad || !telefono)) {
-      msg.textContent = 'Completa nombre, identidad y teléfono.';
-      return;
+    if ((rol === 'guard' || rol === 'guard_admin') && (!nombre || !identidad || !telefono)) {
+      msg.textContent = 'Completa nombre, identidad y teléfono.'; return;
     }
-    if (rol === 'resident' &&
-        (!nombre || !identidad || !telefono || !casa || !bloque)) {
-      msg.textContent = 'Completa todos los campos para residentes.';
-      return;
+    if (rol === 'resident' && (!nombre || !identidad || !telefono || !casa || !bloque)) {
+      msg.textContent = 'Completa todos los campos para residentes.'; return;
     }
 
     msg.textContent = 'Creando usuario…';
@@ -325,9 +326,7 @@ function manejarCreacionUsuarios() {
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
       };
       if (rol === 'resident') {
-        data.casa        = casa;
-        data.bloque      = bloque;
-        data.estado_pago = 'Pendiente';
+        Object.assign(data, { casa, bloque, estado_pago: 'Pendiente' });
       }
       await db.collection('usuarios').doc(user.uid).set(data);
 
@@ -337,10 +336,9 @@ function manejarCreacionUsuarios() {
       camposExtra.style.display = 'none';
     } catch (error) {
       console.error(error);
-      msg.textContent =
-        error.code === 'auth/email-already-in-use'
-          ? 'El correo ya está registrado.'
-          : 'Error: ' + error.message;
+      msg.textContent = error.code === 'auth/email-already-in-use'
+        ? 'El correo ya está registrado.'
+        : 'Error: ' + error.message;
     }
   });
 }
