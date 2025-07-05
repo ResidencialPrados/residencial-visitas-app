@@ -19,6 +19,7 @@
 </head>
 <body>
   <div class="container">
+
     <header class="header">
       <h1 class="title">Dashboard Guardia Administrador</h1>
       <nav class="nav-buttons">
@@ -30,6 +31,7 @@
     </header>
 
     <main>
+
       <!-- Scanner QR -->
       <section id="qr-reader" class="qr-section" aria-hidden="true"></section>
 
@@ -39,9 +41,16 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Nombre Visitante</th><th>Marca</th><th>Color</th>
-              <th>Placa</th><th>Casa</th><th>Bloque</th>
-              <th>Teléfono</th><th>Guardia</th><th>Hora</th><th>Acción</th>
+              <th>Nombre Visitante</th>
+              <th>Marca</th>
+              <th>Color</th>
+              <th>Placa</th>
+              <th>Casa</th>
+              <th>Bloque</th>
+              <th>Teléfono</th>
+              <th>Guardia</th>
+              <th>Hora</th>
+              <th>Acción</th>
             </tr>
           </thead>
           <tbody id="visitas-body">
@@ -54,6 +63,8 @@
       <section class="card">
         <h2>Registro de Usuario</h2>
         <form id="crearUsuarioForm" class="form-stack" autocomplete="off">
+
+          <!-- Rol siempre visible -->
           <div class="field">
             <label for="rolUsuario">Rol:</label>
             <select id="rolUsuario" required>
@@ -63,9 +74,43 @@
               <option value="resident">Residente</option>
             </select>
           </div>
+
+          <!-- Campos extra -->
           <div id="camposExtra" class="form-stack" style="display:none">
-            <!-- aquí van email, contraseña, nombre, identidad, etc. -->
+            <div class="field">
+              <label for="nuevoEmail">Email:</label>
+              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="nuevoPassword">Contraseña:</label>
+              <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required autocomplete="new-password">
+            </div>
+            <div class="field">
+              <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
+              <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required autocomplete="new-password">
+            </div>
+            <div class="field">
+              <label for="nuevoNombre">Nombre completo:</label>
+              <input type="text" id="nuevoNombre" required>
+            </div>
+            <div class="field">
+              <label for="nuevoIdentidad">Identidad:</label>
+              <input type="text" id="nuevoIdentidad" required>
+            </div>
+            <div class="field">
+              <label for="nuevoTelefono">Teléfono:</label>
+              <input type="text" id="nuevoTelefono" required>
+            </div>
+            <div class="field" id="campoCasa" style="display:none">
+              <label for="nuevoCasa">Casa:</label>
+              <input type="text" id="nuevoCasa">
+            </div>
+            <div class="field" id="campoBloque" style="display:none">
+              <label for="nuevoBloque">Bloque:</label>
+              <input type="text" id="nuevoBloque">
+            </div>
           </div>
+
           <button type="submit" class="btn-full">Crear Usuario</button>
           <p id="crearUsuarioMsg" class="message"></p>
         </form>
@@ -80,8 +125,12 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Nombre</th><th>Correo</th><th>Teléfono</th>
-              <th>Casa</th><th>Bloque</th><th>Pago</th>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Teléfono</th>
+              <th>Casa</th>
+              <th>Bloque</th>
+              <th>Pago</th>
             </tr>
           </thead>
           <tbody id="residents-body">
@@ -89,20 +138,23 @@
           </tbody>
         </table>
       </section>
+
     </main>
 
     <footer class="footer">
       <button class="back-btn btn" onclick="history.back()">← Volver</button>
     </footer>
+
   </div>
 
-  <!-- Scripts -->
+  <!-- Principal JS -->
   <script src="js/main-guard-admin.js" defer></script>
+
+  <!-- Registrar Service Worker -->
   <script>
-    // Registrar SW en guard-admin/js/service-worker.js
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('js/service-worker.js', { scope: './' })
-        .then(() => console.log('SW registrado'))
+        .then(() => console.log('SW registrado con scope guard-admin/'))
         .catch(err => console.error('Error al registrar SW:', err));
     }
   </script>
