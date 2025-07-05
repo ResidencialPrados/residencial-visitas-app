@@ -140,7 +140,7 @@
   <!-- Principal JS -->
   <script src="js/main-guard-admin.js" defer></script>
 
-  <!-- Registrar Service Worker, Pagos e Historial -->
+  <!-- Listeners para Pagos e Historial (ya no hay SW) -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('pagosBtn')?.addEventListener('click', () => {
@@ -149,11 +149,6 @@
       document.getElementById('toggleHistorialBtn')?.addEventListener('click', () => {
         window.location.href = 'historial.html';
       });
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('js/service-worker.js', { scope: './' })
-          .then(() => console.log('SW registrado correctamente'))
-          .catch(err => console.error('Error al registrar SW:', err));
-      }
     });
   </script>
 </body>
