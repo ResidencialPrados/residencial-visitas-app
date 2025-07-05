@@ -51,11 +51,26 @@
 
     auth.onAuthStateChanged(async user => {
       if (!user) {
-        window.location.href = "../residencial-visitas-app/index.html";
+        console.warn("🔒 No hay usuario autenticado → redirigiendo a login");
+        window.location.href = "../index.html";
         return;
       }
 
       try {
+        const userDoc = await db.collection('usuarios').doc(user.uid).get();
+        const userData = userDoc.data();
+
+        console.log("✅ Usuario autenticado:", userData);
+
+        if (!userData || (userData.rol !== "guard" && userData.rol !== "guard_admin")) {
+          console.warn(`⚠️ Acceso denegado, rol inválido (${userData?.rol}) → cerrando sesión`);
+          await auth.signOut();
+          window.location.href = "../index.html";
+          return;
+        }
+
+        console.log("✅ Rol válido confirmado, cargando información de la visita");
+
         const doc = await db.collection('visits').doc(visitId).get();
         if (!doc.exists) {
           alert("Visita no encontrada.");
@@ -114,7 +129,7 @@
         });
 
       } catch (error) {
-        console.error("Error cargando visita:", error);
+        console.error("❌ Error cargando visita:", error);
         alert("Ocurrió un error cargando la visita.");
         redirigirPorRol(user.uid);
       }
@@ -126,15 +141,15 @@
         const rol = userDoc.exists ? userDoc.data().rol : '';
 
         if (rol === 'guard_admin') {
-          window.location.href = "../residencial-visitas-app/guard-admin/index.html";
+          window.location.href = "../guard-admin/index.html";
         } else if (rol === 'guard') {
-          window.location.href = "../residencial-visitas-app/guard/index.html";
+          window.location.href = "../guard/index.html";
         } else {
-          window.location.href = "../residencial-visitas-app/index.html";
+          window.location.href = "../index.html";
         }
       } catch (err) {
-        console.error("Error obteniendo el rol:", err);
-        window.location.href = "../residencial-visitas-app/index.html";
+        console.error("❌ Error obteniendo el rol:", err);
+        window.location.href = "../index.html";
       }
     }
   </script>
