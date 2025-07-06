@@ -320,6 +320,9 @@ function manejarCreacionUsuarios() {
 
     msg.textContent = 'Creando usuario…';
     try {
+      const currentUser = auth.currentUser;
+      const currentEmail = currentUser.email;
+
       const { user } = await auth.createUserWithEmailAndPassword(email, pass);
       const data = {
         UID:            user.uid,
@@ -334,6 +337,9 @@ function manejarCreacionUsuarios() {
         Object.assign(data, { casa, bloque, estado_pago: 'Pendiente' });
       }
       await db.collection('usuarios').doc(user.uid).set(data);
+
+      // Restaurar sesión del admin después de crear usuario
+      await auth.signInWithEmailAndPassword(currentEmail, passInput.value);
 
       msg.style.color = 'green';
       msg.textContent = 'Usuario creado con éxito.';
