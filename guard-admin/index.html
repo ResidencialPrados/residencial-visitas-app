@@ -58,7 +58,7 @@
           <!-- 1) Selector de rol siempre visible -->
           <div class="field">
             <label for="rolUsuario">Rol:</label>
-            <select id="rolUsuario" required>
+            <select id="rolUsuario" required autocomplete="off">
               <option value="">Seleccione rol</option>
               <option value="guard">Guardia Común</option>
               <option value="guard_admin">Guardia Administrador</option>
@@ -70,36 +70,36 @@
           <div id="camposExtra" class="form-stack" style="display:none">
             <div class="field">
               <label for="nuevoEmail">Email:</label>
-              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required>
+              <input type="email" id="nuevoEmail" placeholder="correo@ejemplo.com" required autocomplete="off" value="">
             </div>
             <div class="field">
               <label for="nuevoPassword">Contraseña:</label>
-              <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required>
+              <input type="password" id="nuevoPassword" minlength="6" placeholder="Mín. 6 caracteres" required autocomplete="new-password" value="">
             </div>
             <div class="field">
               <label for="nuevoConfirmPassword">Confirmar contraseña:</label>
-              <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required>
+              <input type="password" id="nuevoConfirmPassword" minlength="6" placeholder="Repite la contraseña" required autocomplete="new-password" value="">
             </div>
             <div class="field">
               <label for="nuevoNombre">Nombre completo:</label>
-              <input type="text" id="nuevoNombre" required>
+              <input type="text" id="nuevoNombre" required autocomplete="off" value="">
             </div>
             <div class="field">
               <label for="nuevoIdentidad">Identidad:</label>
-              <input type="text" id="nuevoIdentidad" required>
+              <input type="text" id="nuevoIdentidad" required autocomplete="off" value="">
             </div>
             <div class="field">
               <label for="nuevoTelefono">Teléfono:</label>
-              <input type="text" id="nuevoTelefono" required>
+              <input type="text" id="nuevoTelefono" required autocomplete="off" value="">
             </div>
             <!-- campos para residentes -->
             <div class="field" id="campoCasa" style="display:none">
               <label for="nuevoCasa">Casa:</label>
-              <input type="text" id="nuevoCasa">
+              <input type="text" id="nuevoCasa" autocomplete="off" value="">
             </div>
             <div class="field" id="campoBloque" style="display:none">
               <label for="nuevoBloque">Bloque:</label>
-              <input type="text" id="nuevoBloque">
+              <input type="text" id="nuevoBloque" autocomplete="off" value="">
             </div>
           </div>
 
@@ -114,7 +114,8 @@
         <h2>Residentes y Pagos</h2>
         <div class="field">
           <input type="text" id="buscarResidente"
-                 placeholder="Buscar por nombre, correo, casa, bloque o teléfono">
+                 placeholder="Buscar por nombre, correo, casa, bloque o teléfono"
+                 autocomplete="off" value="">
         </div>
         <table class="table">
           <thead>
@@ -140,7 +141,7 @@
   <!-- Principal JS -->
   <script src="js/main-guard-admin.js" defer></script>
 
-  <!-- Listeners para Pagos e Historial (ya no hay SW) -->
+  <!-- Listeners para Pagos e Historial -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('pagosBtn')?.addEventListener('click', () => {
