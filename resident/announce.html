@@ -1,16 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Anunciar Visita</title>
 
   <base href="/residencial-visitas-app/resident/">
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="css/theme.css" />
-  <link rel="stylesheet" href="css/styles-resident.css" />
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="stylesheet" href="css/theme.css"/>
+  <link rel="stylesheet" href="css/styles-resident.css"/>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" defer></script>
@@ -28,47 +27,29 @@
       <section class="card">
         <form id="announceForm" class="form">
           <div class="form-group">
-            <label for="visitorNameInput" class="form-label">
-              Nombre completo del visitante
-            </label>
-            <input
-              type="text"
-              id="visitorNameInput"
-              class="form-input"
-              placeholder="Ej. Juan Pérez"
-              required
-            />
+            <label for="visitorNameInput" class="form-label">Nombre completo del visitante</label>
+            <input type="text" id="visitorNameInput" class="form-input" placeholder="Ej. Juan Pérez" required/>
           </div>
 
           <div class="form-group">
             <label for="referenceInput" class="form-label">
               Observaciones <span class="text-muted">(opcional)</span>
             </label>
-            <textarea
-              id="referenceInput"
-              class="form-textarea"
-              placeholder="Ej. Viene en moto, trae visita rápida..."
-            ></textarea>
+            <textarea id="referenceInput" class="form-textarea" placeholder="Alguna referencia..."></textarea>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block">
-            Crear Visita
-          </button>
+          <button type="submit" class="btn btn-primary btn-block">Crear Visita</button>
         </form>
 
         <section id="qrResult" class="qr-result hidden" style="margin-top: 20px; text-align: center;">
           <h2>QR para el visitante</h2>
-          <canvas id="qrCanvas"></canvas><br />
+          <canvas id="qrCanvas"></canvas><br>
           <button id="shareBtn" class="btn btn-secondary btn-block" style="margin-top: 10px;">
             Compartir por WhatsApp
           </button>
         </section>
 
-        <button
-          class="btn back-btn btn-block"
-          style="margin-top: 20px;"
-          onclick="location.href='index.html'"
-        >
+        <button class="btn back-btn btn-block" style="margin-top: 20px;" onclick="location.href='index.html'">
           ← Volver
         </button>
       </section>
