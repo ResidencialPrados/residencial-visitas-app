@@ -22,14 +22,13 @@
   <!-- Tu script -->
   <script src="js/main.js" defer></script>
 
-  <!-- Script para recordar usuario -->
+  <!-- Recordar usuario -->
   <script defer>
     document.addEventListener('DOMContentLoaded', () => {
       const identidadInput = document.getElementById('identidad');
       const passwordInput = document.getElementById('password');
       const recordarCheckbox = document.getElementById('recordarCheckbox');
 
-      // Cargar datos guardados si existen
       if (localStorage.getItem('recordarUsuario') === 'true') {
         identidadInput.value = localStorage.getItem('identidad') || '';
         passwordInput.value = localStorage.getItem('password') || '';
@@ -49,6 +48,20 @@
       });
     });
   </script>
+
+  <style>
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+      justify-content: center;
+    }
+    .checkbox-container input[type="checkbox"] {
+      transform: scale(1.2);
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <div class="container flex-column text-center" style="max-width: 360px;">
@@ -66,19 +79,16 @@
         placeholder="Contraseña"
         required>
 
-      <!-- Checkbox recordar -->
-      <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; justify-content: flex-start;">
+      <!-- Checkbox recordar con estilo mejorado -->
+      <label class="checkbox-container">
         <input type="checkbox" id="recordarCheckbox">
-        Recordar usuario en este dispositivo
+        Recordar contraseña en este dispositivo
       </label>
 
       <button type="submit" class="btn">Ingresar</button>
     </form>
 
-    <a
-      id="resetPasswordLink"
-      class="mt-2"
-      href="reset-password.html">
+    <a id="resetPasswordLink" class="mt-2" href="reset-password.html">
       ¿Olvidaste tu contraseña?
     </a>
     <p id="error" class="mt-2"></p>
