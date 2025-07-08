@@ -7,9 +7,7 @@
   <title>Control de Visitas - Login</title>
 
   <!-- Fuente Montserrat -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
 
   <!-- Tema global -->
   <link rel="stylesheet" href="css/theme.css">
@@ -22,13 +20,18 @@
   <!-- Tu script -->
   <script src="js/main.js" defer></script>
 
-  <!-- Recordar usuario -->
+  <!-- Recordar contraseña sin precarga navegador -->
   <script defer>
     document.addEventListener('DOMContentLoaded', () => {
       const identidadInput = document.getElementById('identidad');
       const passwordInput = document.getElementById('password');
       const recordarCheckbox = document.getElementById('recordarCheckbox');
 
+      // Evitar autocompletado del navegador
+      identidadInput.autocomplete = "off";
+      passwordInput.autocomplete = "new-password";
+
+      // Cargar datos guardados
       if (localStorage.getItem('recordarUsuario') === 'true') {
         identidadInput.value = localStorage.getItem('identidad') || '';
         passwordInput.value = localStorage.getItem('password') || '';
@@ -67,19 +70,20 @@
   <div class="container flex-column text-center" style="max-width: 360px;">
     <h1>Ingreso a Residencial</h1>
 
-    <form id="loginForm" class="flex-column">
+    <form id="loginForm" class="flex-column" autocomplete="off">
       <input
         type="text"
         id="identidad"
         placeholder="Número de identidad"
-        required>
+        required
+        autocomplete="off">
       <input
         type="password"
         id="password"
         placeholder="Contraseña"
-        required>
+        required
+        autocomplete="new-password">
 
-      <!-- Checkbox recordar con estilo mejorado -->
       <label class="checkbox-container">
         <input type="checkbox" id="recordarCheckbox">
         Recordar contraseña en este dispositivo
