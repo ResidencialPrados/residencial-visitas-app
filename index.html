@@ -7,7 +7,9 @@
   <title>Control de Visitas - Login</title>
 
   <!-- Fuente Montserrat -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap"
+    rel="stylesheet">
 
   <!-- Tema global -->
   <link rel="stylesheet" href="css/theme.css">
@@ -20,18 +22,13 @@
   <!-- Tu script -->
   <script src="js/main.js" defer></script>
 
-  <!-- Recordar contraseña sin precarga navegador -->
+  <!-- Recordar usuario -->
   <script defer>
     document.addEventListener('DOMContentLoaded', () => {
       const identidadInput = document.getElementById('identidad');
       const passwordInput = document.getElementById('password');
       const recordarCheckbox = document.getElementById('recordarCheckbox');
 
-      // Evitar autocompletado del navegador
-      identidadInput.autocomplete = "off";
-      passwordInput.autocomplete = "new-password";
-
-      // Cargar datos guardados
       if (localStorage.getItem('recordarUsuario') === 'true') {
         identidadInput.value = localStorage.getItem('identidad') || '';
         passwordInput.value = localStorage.getItem('password') || '';
@@ -59,10 +56,22 @@
       gap: 0.5rem;
       font-size: 0.95rem;
       justify-content: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
     .checkbox-container input[type="checkbox"] {
-      transform: scale(1.2);
+      transform: scale(1.4);
+      -webkit-transform: scale(1.4);
+      zoom: 1.4;
       cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      .checkbox-container {
+        justify-content: center;
+      }
     }
   </style>
 </head>
@@ -70,23 +79,22 @@
   <div class="container flex-column text-center" style="max-width: 360px;">
     <h1>Ingreso a Residencial</h1>
 
-    <form id="loginForm" class="flex-column" autocomplete="off">
+    <form id="loginForm" class="flex-column">
       <input
         type="text"
         id="identidad"
         placeholder="Número de identidad"
-        required
-        autocomplete="off">
+        required>
       <input
         type="password"
         id="password"
         placeholder="Contraseña"
-        required
-        autocomplete="new-password">
+        required>
 
+      <!-- Checkbox recordar con estilo mejorado -->
       <label class="checkbox-container">
         <input type="checkbox" id="recordarCheckbox">
-        Recordar contraseña en este dispositivo
+        Recordar contraseña
       </label>
 
       <button type="submit" class="btn">Ingresar</button>
