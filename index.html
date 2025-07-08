@@ -3,11 +3,13 @@
 <head>
   <base href="/residencial-visitas-app/">
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Control de Visitas - Login</title>
 
   <!-- Fuente Montserrat -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap"
+    rel="stylesheet">
 
   <!-- Tema global -->
   <link rel="stylesheet" href="css/theme.css">
@@ -19,50 +21,6 @@
 
   <!-- Tu script -->
   <script src="js/main.js" defer></script>
-
-  <!-- Recordar usuario -->
-  <script defer>
-    document.addEventListener('DOMContentLoaded', () => {
-      const identidadInput = document.getElementById('identidad');
-      const passwordInput = document.getElementById('password');
-      const recordarCheckbox = document.getElementById('recordarCheckbox');
-
-      if (localStorage.getItem('recordarUsuario') === 'true') {
-        identidadInput.value = localStorage.getItem('identidad') || '';
-        passwordInput.value = localStorage.getItem('password') || '';
-        recordarCheckbox.checked = true;
-      }
-
-      document.getElementById('loginForm').addEventListener('submit', () => {
-        if (recordarCheckbox.checked) {
-          localStorage.setItem('recordarUsuario', 'true');
-          localStorage.setItem('identidad', identidadInput.value);
-          localStorage.setItem('password', passwordInput.value);
-        } else {
-          localStorage.removeItem('recordarUsuario');
-          localStorage.removeItem('identidad');
-          localStorage.removeItem('password');
-        }
-      });
-    });
-  </script>
-
-  <style>
-    .checkbox-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      font-size: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .checkbox-container input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-    }
-  </style>
 </head>
 <body>
   <div class="container flex-column text-center" style="max-width: 360px;">
@@ -79,17 +37,13 @@
         id="password"
         placeholder="Contraseña"
         required>
-
-      <!-- Checkbox recordar con estructura correcta -->
-      <label class="checkbox-container">
-        <input type="checkbox" id="recordarCheckbox">
-        <span>Recordar contraseña</span>
-      </label>
-
       <button type="submit" class="btn">Ingresar</button>
     </form>
 
-    <a id="resetPasswordLink" class="mt-2" href="reset-password.html">
+    <a
+      id="resetPasswordLink"
+      class="mt-2"
+      href="reset-password.html">
       ¿Olvidaste tu contraseña?
     </a>
     <p id="error" class="mt-2"></p>
