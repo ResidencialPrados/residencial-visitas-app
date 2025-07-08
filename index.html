@@ -3,7 +3,7 @@
 <head>
   <base href="/residencial-visitas-app/">
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Control de Visitas - Login</title>
 
   <!-- Fuente Montserrat -->
@@ -56,21 +56,20 @@
       gap: 0.5rem;
       font-size: 0.95rem;
       justify-content: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      text-align: center;
+      flex-wrap: wrap;
+      white-space: normal;
     }
 
     .checkbox-container input[type="checkbox"] {
       transform: scale(1.4);
-      -webkit-transform: scale(1.4);
-      zoom: 1.4;
       cursor: pointer;
     }
 
     @media (max-width: 600px) {
       .checkbox-container {
-        justify-content: center;
+        flex-direction: column;
+        gap: 0.25rem;
       }
     }
   </style>
@@ -91,7 +90,7 @@
         placeholder="Contraseña"
         required>
 
-      <!-- Checkbox recordar con estilo mejorado -->
+      <!-- Checkbox recordar con estilo corregido -->
       <label class="checkbox-container">
         <input type="checkbox" id="recordarCheckbox">
         Recordar contraseña
